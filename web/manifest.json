@@ -1,13 +1,11 @@
 {
-    "name": "asset_tracker",
-    "short_name": "asset_tracker",
-    "start_url": ".",
+    "name": "個人資產管理",
+    "short_name": "資產管理",
+    "start_url": "/",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
-    "prefer_related_applications": false,
+    "background_color": "#1A6B72",
+    "theme_color": "#1A6B72",
+    "description": "個人資產紀錄管理 - 股票、不動產、現金、貸款",
     "icons": [
         {
             "src": "icons/Icon-192.png",
