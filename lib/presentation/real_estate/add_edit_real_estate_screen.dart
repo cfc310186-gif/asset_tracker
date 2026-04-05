@@ -4,10 +4,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../domain/enums/currency_code.dart';
-import '../../domain/enums/loan_type.dart';
-import '../../domain/models/loan.dart';
 import '../../domain/models/real_estate_asset.dart';
 import '../../providers/repository_providers.dart';
+import '../../providers/usecase_providers.dart';
 
 class AddEditRealEstateScreen extends ConsumerStatefulWidget {
   const AddEditRealEstateScreen({super.key, this.asset});
@@ -253,29 +252,7 @@ class _AddEditRealEstateScreenState
       await ref.read(realEstateRepositoryProvider).save(asset);
 
       if (needsNewLoan) {
-        final loanId = const Uuid().v4();
-        final placeholderLoan = Loan(
-          id: loanId,
-          type: LoanType.mortgage,
-          name: '${_nameCtrl.text.trim()} 房貸',
-          principal: Decimal.zero,
-          remainingBalance: Decimal.zero,
-          interestRate: Decimal.zero,
-          termMonths: 0,
-          monthlyPayment: Decimal.zero,
-          currency: _currency,
-          hasGracePeriod: false,
-          startDate: now.toIso8601String().substring(0, 10),
-          sourceType: 'real_estate',
-          sourceId: id,
-          createdAt: now,
-          updatedAt: now,
-        );
-        await ref.read(loanRepositoryProvider).save(placeholderLoan);
-
-        // Update asset with linked loan id
-        final assetWithLoan = asset.copyWith(linkedLoanId: loanId);
-        await ref.read(realEstateRepositoryProvider).save(assetWithLoan);
+        await ref.read(createMortgageProvider).execute(asset);
       }
 
       if (mounted) {

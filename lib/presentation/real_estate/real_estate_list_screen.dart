@@ -6,6 +6,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../domain/models/real_estate_asset.dart';
 import '../../providers/repository_providers.dart';
+import '../../providers/usecase_providers.dart';
 
 class RealEstateListScreen extends ConsumerWidget {
   const RealEstateListScreen({super.key});
@@ -104,6 +105,9 @@ class RealEstateListScreen extends ConsumerWidget {
     if (confirmed == true && context.mounted) {
       try {
         await ref.read(realEstateRepositoryProvider).delete(asset.id);
+        await ref
+            .read(syncLinkedLoansProvider)
+            .onRealEstateDeleted(asset);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('不動產已刪除')),

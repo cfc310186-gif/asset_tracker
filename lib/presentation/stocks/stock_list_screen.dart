@@ -8,6 +8,7 @@ import '../../domain/enums/market_code.dart';
 import '../../domain/models/stock_holding.dart';
 import '../../providers/price_providers.dart';
 import '../../providers/repository_providers.dart';
+import '../../providers/usecase_providers.dart';
 
 class StockListScreen extends ConsumerStatefulWidget {
   const StockListScreen({super.key});
@@ -165,6 +166,9 @@ class _StockListScreenState extends ConsumerState<StockListScreen> {
     if (confirmed == true && context.mounted) {
       try {
         await ref.read(stockRepositoryProvider).delete(holding.id);
+        await ref
+            .read(syncLinkedLoansProvider)
+            .onStockDeleted(holding);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('股票已刪除')),

@@ -4,11 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../domain/enums/currency_code.dart';
-import '../../domain/enums/loan_type.dart';
 import '../../domain/enums/market_code.dart';
-import '../../domain/models/loan.dart';
 import '../../domain/models/stock_holding.dart';
 import '../../providers/repository_providers.dart';
+import '../../providers/usecase_providers.dart';
 
 class AddEditStockScreen extends ConsumerStatefulWidget {
   const AddEditStockScreen({super.key, this.holding});
@@ -276,29 +275,12 @@ class _AddEditStockScreenState extends ConsumerState<AddEditStockScreen> {
       await ref.read(stockRepositoryProvider).save(holding);
 
       if (needsNewLoan && marginAmount != null) {
-        final loanId = const Uuid().v4();
-        final placeholderLoan = Loan(
-          id: loanId,
-          type: LoanType.stockMarginLoan,
-          name: '${_symbolCtrl.text.trim()} 融資',
-          principal: marginAmount,
-          remainingBalance: marginAmount,
-          interestRate: Decimal.zero,
-          termMonths: 0,
-          monthlyPayment: Decimal.zero,
-          currency: _currency,
-          hasGracePeriod: false,
-          startDate: now.toIso8601String().substring(0, 10),
-          sourceType: 'stock',
-          sourceId: id,
-          createdAt: now,
-          updatedAt: now,
-        );
-        await ref.read(loanRepositoryProvider).save(placeholderLoan);
-
-        // Update holding with linked loan id
-        final holdingWithLoan = holding.copyWith(linkedLoanId: loanId);
-        await ref.read(stockRepositoryProvider).save(holdingWithLoan);
+        await ref.read(createMarginLoanProvider).execute(holding);
+      } else if (_isMargin &&
+          holding.linkedLoanId != null &&
+          marginAmount != null) {
+        // Margin amount may have changed; sync the linked loan.
+        await ref.read(syncLinkedLoansProvider).onMarginAmountChanged(holding);
       }
 
       if (mounted) {

@@ -1,4 +1,3 @@
-import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -7,7 +6,7 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../domain/enums/currency_code.dart';
 import '../../domain/models/net_worth_summary.dart';
-import '../../providers/repository_providers.dart';
+import '../../providers/usecase_providers.dart';
 import 'widgets/asset_breakdown_chart.dart';
 import 'widgets/category_summary_tile.dart';
 import 'widgets/net_worth_card.dart';
@@ -17,42 +16,22 @@ class DashboardScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final stocksAsync = ref.watch(
-      _stocksProvider,
-    );
-    final realEstateAsync = ref.watch(
-      _realEstateProvider,
-    );
-    final loansAsync = ref.watch(
-      _loansProvider,
-    );
-    final cashAsync = ref.watch(
-      _cashProvider,
-    );
+    final summaryAsync = ref.watch(_netWorthProvider);
 
-    // Show loading while any source is loading
-    if (stocksAsync.isLoading ||
-        realEstateAsync.isLoading ||
-        loansAsync.isLoading ||
-        cashAsync.isLoading) {
+    if (summaryAsync.isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    // Show error if any source failed
-    final stocksError = stocksAsync.error;
-    final realEstateError = realEstateAsync.error;
-    final loansError = loansAsync.error;
-    final cashError = cashAsync.error;
-
-    if (stocksError != null ||
-        realEstateError != null ||
-        loansError != null ||
-        cashError != null) {
+    if (summaryAsync.hasError) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.error_outline, size: 48, color: AppTheme.lossColor),
+            const Icon(
+              Icons.error_outline,
+              size: 48,
+              color: AppTheme.lossColor,
+            ),
             const SizedBox(height: 16),
             Text(
               '載入資料時發生錯誤',
@@ -60,12 +39,7 @@ class DashboardScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 8),
             TextButton(
-              onPressed: () {
-                ref.invalidate(_stocksProvider);
-                ref.invalidate(_realEstateProvider);
-                ref.invalidate(_loansProvider);
-                ref.invalidate(_cashProvider);
-              },
+              onPressed: () => ref.invalidate(_netWorthProvider),
               child: const Text('重試'),
             ),
           ],
@@ -73,38 +47,7 @@ class DashboardScreen extends ConsumerWidget {
       );
     }
 
-    final stocks = stocksAsync.value ?? [];
-    final realEstateList = realEstateAsync.value ?? [];
-    final loans = loansAsync.value ?? [];
-    final cashAccounts = cashAsync.value ?? [];
-
-    // Compute net worth inline (no currency conversion in Phase 2)
-    final totalStockValue = stocks.fold(
-      Decimal.zero,
-      (sum, s) => sum + s.totalValue,
-    );
-    final totalRealEstateValue = realEstateList.fold(
-      Decimal.zero,
-      (sum, r) => sum + r.estimatedValue,
-    );
-    final totalCashValue = cashAccounts.fold(
-      Decimal.zero,
-      (sum, c) => sum + c.balance,
-    );
-    final totalLoanBalance = loans.fold(
-      Decimal.zero,
-      (sum, l) => sum + l.remainingBalance,
-    );
-
-    final summary = NetWorthSummary(
-      totalStockValue: totalStockValue,
-      totalRealEstateValue: totalRealEstateValue,
-      totalCashValue: totalCashValue,
-      totalLoanBalance: totalLoanBalance,
-      displayCurrency: CurrencyCode.twd,
-      calculatedAt: DateTime.now(),
-    );
-
+    final summary = summaryAsync.value!;
     final theme = Theme.of(context);
 
     return SingleChildScrollView(
@@ -130,8 +73,8 @@ class DashboardScreen extends ConsumerWidget {
                 icon: Icons.show_chart,
                 title: '股票',
                 amount: CurrencyFormatter.format(
-                  totalStockValue,
-                  CurrencyCode.twd,
+                  summary.totalStockValue,
+                  summary.displayCurrency,
                 ),
                 color: const Color(0xFF3B82F6),
                 onTap: () => context.go('/stocks'),
@@ -140,8 +83,8 @@ class DashboardScreen extends ConsumerWidget {
                 icon: Icons.home_work,
                 title: '不動產',
                 amount: CurrencyFormatter.format(
-                  totalRealEstateValue,
-                  CurrencyCode.twd,
+                  summary.totalRealEstateValue,
+                  summary.displayCurrency,
                 ),
                 color: const Color(0xFF10B981),
                 onTap: () => context.go('/real-estate'),
@@ -150,8 +93,8 @@ class DashboardScreen extends ConsumerWidget {
                 icon: Icons.savings,
                 title: '現金',
                 amount: CurrencyFormatter.format(
-                  totalCashValue,
-                  CurrencyCode.twd,
+                  summary.totalCashValue,
+                  summary.displayCurrency,
                 ),
                 color: const Color(0xFFF59E0B),
                 onTap: () => context.go('/cash'),
@@ -160,8 +103,8 @@ class DashboardScreen extends ConsumerWidget {
                 icon: Icons.account_balance,
                 title: '貸款',
                 amount: CurrencyFormatter.format(
-                  totalLoanBalance,
-                  CurrencyCode.twd,
+                  summary.totalLoanBalance,
+                  summary.displayCurrency,
                 ),
                 color: const Color(0xFFEF4444),
                 onTap: () => context.go('/loans'),
@@ -176,21 +119,11 @@ class DashboardScreen extends ConsumerWidget {
 }
 
 // ---------------------------------------------------------------------------
-// Stream-based providers that watch live data from repositories
+// FutureProvider backed by CalculateNetWorth use case
 // ---------------------------------------------------------------------------
 
-final _stocksProvider = StreamProvider((ref) {
-  return ref.watch(stockRepositoryProvider).watchAll();
-});
-
-final _realEstateProvider = StreamProvider((ref) {
-  return ref.watch(realEstateRepositoryProvider).watchAll();
-});
-
-final _loansProvider = StreamProvider((ref) {
-  return ref.watch(loanRepositoryProvider).watchAll();
-});
-
-final _cashProvider = StreamProvider((ref) {
-  return ref.watch(cashRepositoryProvider).watchAll();
+final _netWorthProvider = FutureProvider<NetWorthSummary>((ref) {
+  return ref.watch(calculateNetWorthProvider).execute(
+        displayCurrency: CurrencyCode.twd,
+      );
 });
