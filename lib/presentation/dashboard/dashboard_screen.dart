@@ -4,8 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/currency_formatter.dart';
-import '../../domain/enums/currency_code.dart';
 import '../../domain/models/net_worth_summary.dart';
+import '../../providers/settings_providers.dart';
 import '../../providers/usecase_providers.dart';
 import 'widgets/asset_breakdown_chart.dart';
 import 'widgets/category_summary_tile.dart';
@@ -18,38 +18,53 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final summaryAsync = ref.watch(_netWorthProvider);
 
-    if (summaryAsync.isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    if (summaryAsync.hasError) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(
-              Icons.error_outline,
-              size: 48,
-              color: AppTheme.lossColor,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              '載入資料時發生錯誤',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            TextButton(
-              onPressed: () => ref.invalidate(_netWorthProvider),
-              child: const Text('重試'),
-            ),
-          ],
+    return summaryAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (error, _) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.error_outline,
+                size: 48,
+                color: AppTheme.lossColor,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '載入資料時發生錯誤',
+                style: Theme.of(context).textTheme.titleLarge,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                error.toString(),
+                style: Theme.of(context).textTheme.bodySmall,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                onPressed: () => ref.invalidate(_netWorthProvider),
+                icon: const Icon(Icons.refresh),
+                label: const Text('重試'),
+              ),
+            ],
+          ),
         ),
-      );
-    }
+      ),
+      data: (summary) => _DashboardBody(summary: summary),
+    );
+  }
+}
 
-    final summary = summaryAsync.value!;
+class _DashboardBody extends StatelessWidget {
+  const _DashboardBody({required this.summary});
+  final NetWorthSummary summary;
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -123,7 +138,8 @@ class DashboardScreen extends ConsumerWidget {
 // ---------------------------------------------------------------------------
 
 final _netWorthProvider = FutureProvider<NetWorthSummary>((ref) {
+  final currency = ref.watch(displayCurrencyProvider);
   return ref.watch(calculateNetWorthProvider).execute(
-        displayCurrency: CurrencyCode.twd,
+        displayCurrency: currency,
       );
 });

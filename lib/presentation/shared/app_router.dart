@@ -7,6 +7,7 @@ import '../loans/add_edit_loan_screen.dart';
 import '../loans/loan_list_screen.dart';
 import '../real_estate/add_edit_real_estate_screen.dart';
 import '../real_estate/real_estate_list_screen.dart';
+import '../settings/settings_screen.dart';
 import '../stocks/add_edit_stock_screen.dart';
 import '../stocks/stock_list_screen.dart';
 import '../../domain/models/cash_account.dart';
@@ -89,6 +90,10 @@ final appRouter = GoRouter(
               },
             ),
           ],
+        ),
+        GoRoute(
+          path: '/settings',
+          builder: (c, s) => const SettingsScreen(),
         ),
       ],
     ),

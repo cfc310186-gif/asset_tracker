@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+
 class ResponsiveScaffold extends StatelessWidget {
   final Widget child;
   const ResponsiveScaffold({super.key, required this.child});
@@ -53,12 +54,22 @@ class _DesktopScaffold extends StatelessWidget {
             minExtendedWidth: 200,
             leading: Padding(
               padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Text(
-                '資產管理',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.w700,
-                    ),
+              child: Column(
+                children: [
+                  Text(
+                    '資產管理',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  IconButton(
+                    icon: const Icon(Icons.settings_outlined),
+                    tooltip: '設定',
+                    onPressed: () => context.go('/settings'),
+                  ),
+                ],
               ),
             ),
             destinations: _navDestinations
@@ -89,6 +100,16 @@ class _MobileScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     final selectedIdx = _selectedIndex(context);
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('資產管理'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: '設定',
+            onPressed: () => context.go('/settings'),
+          ),
+        ],
+      ),
       body: child,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: selectedIdx,
