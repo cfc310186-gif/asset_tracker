@@ -1,5 +1,18 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+
+import '../cash/add_edit_cash_screen.dart';
+import '../cash/cash_list_screen.dart';
+import '../dashboard/dashboard_screen.dart';
+import '../loans/add_edit_loan_screen.dart';
+import '../loans/loan_list_screen.dart';
+import '../real_estate/add_edit_real_estate_screen.dart';
+import '../real_estate/real_estate_list_screen.dart';
+import '../stocks/add_edit_stock_screen.dart';
+import '../stocks/stock_list_screen.dart';
+import '../../domain/models/cash_account.dart';
+import '../../domain/models/loan.dart';
+import '../../domain/models/real_estate_asset.dart';
+import '../../domain/models/stock_holding.dart';
 import 'responsive_scaffold.dart';
 
 final appRouter = GoRouter(
@@ -8,49 +21,77 @@ final appRouter = GoRouter(
     ShellRoute(
       builder: (context, state, child) => ResponsiveScaffold(child: child),
       routes: [
-        GoRoute(path: '/', builder: (c, s) => const DashboardPlaceholder()),
-        GoRoute(path: '/stocks', builder: (c, s) => const StocksPlaceholder()),
+        GoRoute(path: '/', builder: (c, s) => const DashboardScreen()),
+        GoRoute(
+          path: '/stocks',
+          builder: (c, s) => const StockListScreen(),
+          routes: [
+            GoRoute(
+              path: 'add',
+              builder: (c, s) => const AddEditStockScreen(),
+            ),
+            GoRoute(
+              path: 'edit',
+              builder: (c, s) {
+                final holding = s.extra as StockHolding?;
+                return AddEditStockScreen(holding: holding);
+              },
+            ),
+          ],
+        ),
         GoRoute(
           path: '/real-estate',
-          builder: (c, s) => const RealEstatePlaceholder(),
+          builder: (c, s) => const RealEstateListScreen(),
+          routes: [
+            GoRoute(
+              path: 'add',
+              builder: (c, s) => const AddEditRealEstateScreen(),
+            ),
+            GoRoute(
+              path: 'edit',
+              builder: (c, s) {
+                final asset = s.extra as RealEstateAsset?;
+                return AddEditRealEstateScreen(asset: asset);
+              },
+            ),
+          ],
         ),
-        GoRoute(path: '/loans', builder: (c, s) => const LoansPlaceholder()),
-        GoRoute(path: '/cash', builder: (c, s) => const CashPlaceholder()),
+        GoRoute(
+          path: '/loans',
+          builder: (c, s) => const LoanListScreen(),
+          routes: [
+            GoRoute(
+              path: 'add',
+              builder: (c, s) => const AddEditLoanScreen(),
+            ),
+            GoRoute(
+              path: 'edit',
+              builder: (c, s) {
+                final loan = s.extra as Loan?;
+                return AddEditLoanScreen(loan: loan);
+              },
+            ),
+          ],
+        ),
+        GoRoute(
+          path: '/cash',
+          builder: (c, s) => const CashListScreen(),
+          routes: [
+            GoRoute(
+              path: 'add',
+              builder: (c, s) => const AddEditCashScreen(),
+            ),
+            GoRoute(
+              path: 'edit',
+              builder: (c, s) {
+                final account = s.extra as CashAccount?;
+                return AddEditCashScreen(account: account);
+              },
+            ),
+          ],
+        ),
       ],
     ),
   ],
 );
 
-// Placeholder screens — to be replaced in later tasks
-
-class DashboardPlaceholder extends StatelessWidget {
-  const DashboardPlaceholder({super.key});
-  @override
-  Widget build(BuildContext context) =>
-      const Center(child: Text('Dashboard'));
-}
-
-class StocksPlaceholder extends StatelessWidget {
-  const StocksPlaceholder({super.key});
-  @override
-  Widget build(BuildContext context) => const Center(child: Text('Stocks'));
-}
-
-class RealEstatePlaceholder extends StatelessWidget {
-  const RealEstatePlaceholder({super.key});
-  @override
-  Widget build(BuildContext context) =>
-      const Center(child: Text('Real Estate'));
-}
-
-class LoansPlaceholder extends StatelessWidget {
-  const LoansPlaceholder({super.key});
-  @override
-  Widget build(BuildContext context) => const Center(child: Text('Loans'));
-}
-
-class CashPlaceholder extends StatelessWidget {
-  const CashPlaceholder({super.key});
-  @override
-  Widget build(BuildContext context) => const Center(child: Text('Cash'));
-}
