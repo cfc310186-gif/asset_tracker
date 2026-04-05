@@ -6,29 +6,66 @@ import '../../core/theme/app_theme.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../domain/enums/market_code.dart';
 import '../../domain/models/stock_holding.dart';
+import '../../providers/price_providers.dart';
 import '../../providers/repository_providers.dart';
 
-class StockListScreen extends ConsumerWidget {
+class StockListScreen extends ConsumerStatefulWidget {
   const StockListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<StockListScreen> createState() => _StockListScreenState();
+}
+
+class _StockListScreenState extends ConsumerState<StockListScreen> {
+  bool _isRefreshing = false;
+
+  Future<void> _refreshPrices() async {
+    if (_isRefreshing) return;
+    setState(() => _isRefreshing = true);
+    try {
+      final result =
+          await ref.read(refreshStockPricesProvider).execute();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('已更新 ${result.updated} 檔，${result.failed} 檔失敗'),
+          ),
+        );
+      }
+    } on Exception catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('更新失敗：$e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isRefreshing = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final repo = ref.watch(stockRepositoryProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('股票'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: '重新整理',
-            onPressed: () {
-              // Price refresh wired in Phase 3
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('股價更新將於 Phase 3 實作')),
-              );
-            },
-          ),
+          if (_isRefreshing)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            )
+          else
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              tooltip: '更新股價',
+              onPressed: _refreshPrices,
+            ),
         ],
       ),
       floatingActionButton: FloatingActionButton(

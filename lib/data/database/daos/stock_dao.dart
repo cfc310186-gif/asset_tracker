@@ -16,6 +16,11 @@ class StockDao extends DatabaseAccessor<AppDatabase> with _$StockDaoMixin {
   Future<StockEntry?> getById(String id) =>
       (select(stocks)..where((t) => t.id.equals(id))).getSingleOrNull();
 
+  Future<StockEntry?> findBySymbolAndMarket(String symbol, String market) =>
+      (select(stocks)
+            ..where((t) => t.symbol.equals(symbol) & t.market.equals(market)))
+          .getSingleOrNull();
+
   Future<int> insertOne(StocksCompanion entry) =>
       into(stocks).insert(entry);
 
