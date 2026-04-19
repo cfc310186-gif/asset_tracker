@@ -44,3 +44,9 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 .worktrees/
+
+# Node / E2E
+node_modules/
+e2e/node_modules/
+e2e/playwright-report/
+e2e/test-results/

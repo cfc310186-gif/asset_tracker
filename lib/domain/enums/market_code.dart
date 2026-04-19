@@ -1,20 +1,21 @@
+import '../enums/currency_code.dart';
+
 enum MarketCode {
-  twse, // 台股上市 TWSE
-  tpex, // 台股上櫃 TPEx/OTC
-  emerging, // 台股興櫃 Emerging
-  nyse, // 美股 NYSE
-  nasdaq, // 美股 NASDAQ
-  lse; // 英股 LSE
+  taiwan, // 台股（上市 / 上櫃 / 興櫃）
+  us, // 美股
+  uk; // 英股（LSE，USD 計價）
 
   String get displayName => switch (this) {
-        MarketCode.twse => '台股上市',
-        MarketCode.tpex => '台股上櫃',
-        MarketCode.emerging => '台股興櫃',
-        MarketCode.nyse => '美股 NYSE',
-        MarketCode.nasdaq => '美股 NASDAQ',
-        MarketCode.lse => '英股 LSE',
+        MarketCode.taiwan => '台股',
+        MarketCode.us => '美股',
+        MarketCode.uk => '英股',
       };
 
-  bool get isTaiwanMarket =>
-      this == twse || this == tpex || this == emerging;
+  CurrencyCode get defaultCurrency => switch (this) {
+        MarketCode.taiwan => CurrencyCode.twd,
+        MarketCode.us => CurrencyCode.usd,
+        MarketCode.uk => CurrencyCode.usd,
+      };
+
+  bool get isTaiwanMarket => this == taiwan;
 }

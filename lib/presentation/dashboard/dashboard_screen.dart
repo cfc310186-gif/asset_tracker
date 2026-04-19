@@ -20,29 +20,47 @@ class DashboardScreen extends ConsumerWidget {
 
     return summaryAsync.when(
       loading: () => const Center(child: CircularProgressIndicator()),
-      error: (error, _) => Center(
+      error: (error, stack) => Center(
         child: Padding(
           padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.error_outline,
-                size: 48,
-                color: AppTheme.lossColor,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                '載入資料時發生錯誤',
-                style: Theme.of(context).textTheme.titleLarge,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                error.toString(),
-                style: Theme.of(context).textTheme.bodySmall,
-                textAlign: TextAlign.center,
-              ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.error_outline,
+                  size: 48,
+                  color: AppTheme.lossColor,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  '載入資料時發生錯誤',
+                  style: Theme.of(context).textTheme.titleLarge,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                SelectableText(
+                  'ERROR: ${error.runtimeType}\n${error.toString()}',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(fontFamily: 'monospace'),
+                  textAlign: TextAlign.left,
+                ),
+                const SizedBox(height: 8),
+                SelectableText(
+                  stack.toString().substring(
+                        0,
+                        stack.toString().length > 800
+                            ? 800
+                            : stack.toString().length,
+                      ),
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(fontSize: 10, fontFamily: 'monospace'),
+                  textAlign: TextAlign.left,
+                ),
               const SizedBox(height: 16),
               FilledButton.icon(
                 onPressed: () => ref.invalidate(_netWorthProvider),
@@ -52,6 +70,7 @@ class DashboardScreen extends ConsumerWidget {
             ],
           ),
         ),
+      ),
       ),
       data: (summary) => _DashboardBody(summary: summary),
     );

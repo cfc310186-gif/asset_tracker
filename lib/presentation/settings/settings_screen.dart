@@ -45,6 +45,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       final erKey =
           prefs.getString(AppConstants.prefExchangeRateApiKey) ?? '';
 
+      // Populate the provider so priceRepositoryProvider picks the right source.
+      ref.read(alphaVantageKeyProvider.notifier).state = avKey;
+
       if (mounted) {
         setState(() {
           _alphaVantageController.text = avKey;
@@ -65,6 +68,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _saveAlphaVantageKey(String value) async {
+    ref.read(alphaVantageKeyProvider.notifier).state = value;
     final prefsAsync = ref.read(sharedPrefsProvider);
     prefsAsync.whenData(
       (prefs) => prefs.setString(AppConstants.prefAlphaVantageApiKey, value),
@@ -167,8 +171,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   TextField(
                     controller: _alphaVantageController,
                     decoration: const InputDecoration(
-                      labelText: 'Alpha Vantage API Key（可選）',
-                      helperText: '用於美股 / 英股價格備援',
+                      labelText: 'Alpha Vantage API Key',
+                      helperText: '美股 / 英股查詢需要此 Key。免費申請：alphavantage.co/support/#api-key',
                       border: OutlineInputBorder(),
                     ),
                     onChanged: _saveAlphaVantageKey,

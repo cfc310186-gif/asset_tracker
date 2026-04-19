@@ -14,7 +14,7 @@ class TwseProvider implements StockPriceProvider {
       'https://mis.twse.com.tw/stock/api/getStockInfo.jsp';
 
   @override
-  bool supportsMarket(MarketCode market) => market == MarketCode.twse;
+  bool supportsMarket(MarketCode market) => market == MarketCode.taiwan;
 
   @override
   Future<StockQuote?> getQuote(String symbol, MarketCode market) async {

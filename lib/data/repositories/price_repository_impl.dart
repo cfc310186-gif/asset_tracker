@@ -9,29 +9,23 @@ import '../database/daos/stock_dao.dart';
 
 class PriceRepositoryImpl implements PriceRepository {
   PriceRepositoryImpl({
-    required List<StockPriceProvider> providers,
+    required StockPriceProvider taiwanProvider,
+    required StockPriceProvider foreignProvider,
     required StockDao stockDao,
-  })  : _providers = providers,
+  })  : _taiwanProvider = taiwanProvider,
+        _foreignProvider = foreignProvider,
         _stockDao = stockDao;
 
-  final List<StockPriceProvider> _providers;
+  final StockPriceProvider _taiwanProvider; // TaiwanWaterfallProvider
+  final StockPriceProvider _foreignProvider; // AlphaVantageProvider or StooqProvider
   final StockDao _stockDao;
 
-  StockPriceProvider? _providerFor(MarketCode market) {
-    for (final p in _providers) {
-      if (p.supportsMarket(market)) return p;
-    }
-    return null;
-  }
+  StockPriceProvider _providerFor(MarketCode market) =>
+      market == MarketCode.taiwan ? _taiwanProvider : _foreignProvider;
 
   @override
-  Future<StockQuote?> getQuote(String symbol, MarketCode market) async {
-    final provider = _providerFor(market);
-    if (provider == null) {
-      debugPrint('[PriceRepository] No provider for market: $market');
-      return null;
-    }
-    return provider.getQuote(symbol, market);
+  Future<StockQuote?> getQuote(String symbol, MarketCode market) {
+    return _providerFor(market).getQuote(symbol, market);
   }
 
   @override
@@ -40,7 +34,6 @@ class PriceRepositoryImpl implements PriceRepository {
   ) async {
     if (holdings.isEmpty) return [];
 
-    // Group holdings by market for batch fetching.
     final byMarket = <MarketCode, List<String>>{};
     for (final h in holdings) {
       byMarket.putIfAbsent(h.market, () => []).add(h.symbol);
@@ -52,18 +45,11 @@ class PriceRepositoryImpl implements PriceRepository {
       byMarket.entries.map((entry) async {
         final market = entry.key;
         final symbols = entry.value;
-        final provider = _providerFor(market);
-        if (provider == null) {
-          debugPrint('[PriceRepository] No provider for market: $market');
-          return;
-        }
         try {
-          final quotes = await provider.getBatchQuotes(symbols, market);
+          final quotes = await _providerFor(market).getBatchQuotes(symbols, market);
           allQuotes.addAll(quotes);
         } on Exception catch (e) {
-          debugPrint(
-            '[PriceRepository] Error fetching $market quotes: $e',
-          );
+          debugPrint('[PriceRepository] Error fetching $market quotes: $e');
         }
       }),
     );
@@ -75,7 +61,7 @@ class PriceRepositoryImpl implements PriceRepository {
   Future<void> cacheQuote(StockQuote quote, MarketCode market) async {
     final entry =
         await _stockDao.findBySymbolAndMarket(quote.symbol, market.name);
-    if (entry == null) return; // symbol not in portfolio, nothing to cache
+    if (entry == null) return;
 
     await _stockDao.updateOne(StocksCompanion(
       id: Value(entry.id),

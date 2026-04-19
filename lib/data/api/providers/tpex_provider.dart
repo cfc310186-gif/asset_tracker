@@ -18,7 +18,7 @@ class TpexProvider implements StockPriceProvider {
   DateTime? _cacheTime;
 
   @override
-  bool supportsMarket(MarketCode market) => market == MarketCode.tpex;
+  bool supportsMarket(MarketCode market) => market == MarketCode.taiwan;
 
   @override
   Future<StockQuote?> getQuote(String symbol, MarketCode market) async {

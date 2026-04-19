@@ -1,0 +1,19 @@
+{
+  "name": "asset-tracker-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:debug": "playwright test --debug",
+    "test:report": "playwright show-report",
+    "test:dashboard": "playwright test tests/dashboard.spec.ts",
+    "test:cash": "playwright test tests/cash.spec.ts",
+    "test:stocks": "playwright test tests/stocks.spec.ts",
+    "test:nav": "playwright test tests/navigation.spec.ts"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.50.0",
+    "@types/node": "^22.0.0"
+  }
+}

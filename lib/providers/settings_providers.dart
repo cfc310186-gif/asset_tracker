@@ -13,6 +13,14 @@ final displayCurrencyProvider = StateProvider<CurrencyCode>((ref) {
   return CurrencyCode.twd;
 });
 
+/// Alpha Vantage API key. Populated by SettingsScreen on load.
+/// Empty string means no key — prices stay null for foreign stocks.
+final alphaVantageKeyProvider = StateProvider<String>((ref) => '');
+
+/// Circular FIFO pointer for stock price refresh queue.
+/// Populated from SharedPreferences by StockListScreen on load.
+final refreshQueuePointerProvider = StateProvider<int>((ref) => 0);
+
 /// Persists the selected [CurrencyCode] to SharedPreferences.
 Future<void> saveDisplayCurrency(
   SharedPreferences prefs,
