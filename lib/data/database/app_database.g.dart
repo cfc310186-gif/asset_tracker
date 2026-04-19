@@ -2792,6 +2792,1023 @@ class ExchangeRatesCompanion extends UpdateCompanion<ExchangeRateEntry> {
   }
 }
 
+class $TransactionsTable extends Transactions
+    with TableInfo<$TransactionsTable, TransactionEntry> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TransactionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _assetTypeMeta =
+      const VerificationMeta('assetType');
+  @override
+  late final GeneratedColumn<String> assetType = GeneratedColumn<String>(
+      'asset_type', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _assetIdMeta =
+      const VerificationMeta('assetId');
+  @override
+  late final GeneratedColumn<String> assetId = GeneratedColumn<String>(
+      'asset_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _kindMeta = const VerificationMeta('kind');
+  @override
+  late final GeneratedColumn<String> kind = GeneratedColumn<String>(
+      'kind', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _quantityMeta =
+      const VerificationMeta('quantity');
+  @override
+  late final GeneratedColumn<String> quantity = GeneratedColumn<String>(
+      'quantity', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _priceMeta = const VerificationMeta('price');
+  @override
+  late final GeneratedColumn<String> price = GeneratedColumn<String>(
+      'price', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
+  @override
+  late final GeneratedColumn<String> amount = GeneratedColumn<String>(
+      'amount', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _currencyMeta =
+      const VerificationMeta('currency');
+  @override
+  late final GeneratedColumn<String> currency = GeneratedColumn<String>(
+      'currency', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _occurredAtMeta =
+      const VerificationMeta('occurredAt');
+  @override
+  late final GeneratedColumn<DateTime> occurredAt = GeneratedColumn<DateTime>(
+      'occurred_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+      'note', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        assetType,
+        assetId,
+        kind,
+        quantity,
+        price,
+        amount,
+        currency,
+        occurredAt,
+        note,
+        createdAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'transactions';
+  @override
+  VerificationContext validateIntegrity(Insertable<TransactionEntry> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('asset_type')) {
+      context.handle(_assetTypeMeta,
+          assetType.isAcceptableOrUnknown(data['asset_type']!, _assetTypeMeta));
+    } else if (isInserting) {
+      context.missing(_assetTypeMeta);
+    }
+    if (data.containsKey('asset_id')) {
+      context.handle(_assetIdMeta,
+          assetId.isAcceptableOrUnknown(data['asset_id']!, _assetIdMeta));
+    } else if (isInserting) {
+      context.missing(_assetIdMeta);
+    }
+    if (data.containsKey('kind')) {
+      context.handle(
+          _kindMeta, kind.isAcceptableOrUnknown(data['kind']!, _kindMeta));
+    } else if (isInserting) {
+      context.missing(_kindMeta);
+    }
+    if (data.containsKey('quantity')) {
+      context.handle(_quantityMeta,
+          quantity.isAcceptableOrUnknown(data['quantity']!, _quantityMeta));
+    }
+    if (data.containsKey('price')) {
+      context.handle(
+          _priceMeta, price.isAcceptableOrUnknown(data['price']!, _priceMeta));
+    }
+    if (data.containsKey('amount')) {
+      context.handle(_amountMeta,
+          amount.isAcceptableOrUnknown(data['amount']!, _amountMeta));
+    } else if (isInserting) {
+      context.missing(_amountMeta);
+    }
+    if (data.containsKey('currency')) {
+      context.handle(_currencyMeta,
+          currency.isAcceptableOrUnknown(data['currency']!, _currencyMeta));
+    } else if (isInserting) {
+      context.missing(_currencyMeta);
+    }
+    if (data.containsKey('occurred_at')) {
+      context.handle(
+          _occurredAtMeta,
+          occurredAt.isAcceptableOrUnknown(
+              data['occurred_at']!, _occurredAtMeta));
+    } else if (isInserting) {
+      context.missing(_occurredAtMeta);
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+          _noteMeta, note.isAcceptableOrUnknown(data['note']!, _noteMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  TransactionEntry map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TransactionEntry(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      assetType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}asset_type'])!,
+      assetId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}asset_id'])!,
+      kind: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}kind'])!,
+      quantity: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}quantity']),
+      price: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}price']),
+      amount: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}amount'])!,
+      currency: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}currency'])!,
+      occurredAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}occurred_at'])!,
+      note: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}note']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+    );
+  }
+
+  @override
+  $TransactionsTable createAlias(String alias) {
+    return $TransactionsTable(attachedDatabase, alias);
+  }
+}
+
+class TransactionEntry extends DataClass
+    implements Insertable<TransactionEntry> {
+  final String id;
+
+  /// One of: stock | cash | real_estate | loan
+  final String assetType;
+
+  /// FK-ish reference to the source table's id. Not enforced because
+  /// rows are kept after the source asset is deleted (audit trail).
+  final String assetId;
+
+  /// One of: buy | sell | deposit | withdraw | dividend | adjust
+  final String kind;
+
+  /// Optional quantity (e.g. shares). Stored as text Decimal.
+  final String? quantity;
+
+  /// Optional unit price. Stored as text Decimal.
+  final String? price;
+
+  /// Total amount in [currency] (signed: positive = inflow, negative = outflow).
+  final String amount;
+  final String currency;
+  final DateTime occurredAt;
+  final String? note;
+  final DateTime createdAt;
+  const TransactionEntry(
+      {required this.id,
+      required this.assetType,
+      required this.assetId,
+      required this.kind,
+      this.quantity,
+      this.price,
+      required this.amount,
+      required this.currency,
+      required this.occurredAt,
+      this.note,
+      required this.createdAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['asset_type'] = Variable<String>(assetType);
+    map['asset_id'] = Variable<String>(assetId);
+    map['kind'] = Variable<String>(kind);
+    if (!nullToAbsent || quantity != null) {
+      map['quantity'] = Variable<String>(quantity);
+    }
+    if (!nullToAbsent || price != null) {
+      map['price'] = Variable<String>(price);
+    }
+    map['amount'] = Variable<String>(amount);
+    map['currency'] = Variable<String>(currency);
+    map['occurred_at'] = Variable<DateTime>(occurredAt);
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  TransactionsCompanion toCompanion(bool nullToAbsent) {
+    return TransactionsCompanion(
+      id: Value(id),
+      assetType: Value(assetType),
+      assetId: Value(assetId),
+      kind: Value(kind),
+      quantity: quantity == null && nullToAbsent
+          ? const Value.absent()
+          : Value(quantity),
+      price:
+          price == null && nullToAbsent ? const Value.absent() : Value(price),
+      amount: Value(amount),
+      currency: Value(currency),
+      occurredAt: Value(occurredAt),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory TransactionEntry.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TransactionEntry(
+      id: serializer.fromJson<String>(json['id']),
+      assetType: serializer.fromJson<String>(json['assetType']),
+      assetId: serializer.fromJson<String>(json['assetId']),
+      kind: serializer.fromJson<String>(json['kind']),
+      quantity: serializer.fromJson<String?>(json['quantity']),
+      price: serializer.fromJson<String?>(json['price']),
+      amount: serializer.fromJson<String>(json['amount']),
+      currency: serializer.fromJson<String>(json['currency']),
+      occurredAt: serializer.fromJson<DateTime>(json['occurredAt']),
+      note: serializer.fromJson<String?>(json['note']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'assetType': serializer.toJson<String>(assetType),
+      'assetId': serializer.toJson<String>(assetId),
+      'kind': serializer.toJson<String>(kind),
+      'quantity': serializer.toJson<String?>(quantity),
+      'price': serializer.toJson<String?>(price),
+      'amount': serializer.toJson<String>(amount),
+      'currency': serializer.toJson<String>(currency),
+      'occurredAt': serializer.toJson<DateTime>(occurredAt),
+      'note': serializer.toJson<String?>(note),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  TransactionEntry copyWith(
+          {String? id,
+          String? assetType,
+          String? assetId,
+          String? kind,
+          Value<String?> quantity = const Value.absent(),
+          Value<String?> price = const Value.absent(),
+          String? amount,
+          String? currency,
+          DateTime? occurredAt,
+          Value<String?> note = const Value.absent(),
+          DateTime? createdAt}) =>
+      TransactionEntry(
+        id: id ?? this.id,
+        assetType: assetType ?? this.assetType,
+        assetId: assetId ?? this.assetId,
+        kind: kind ?? this.kind,
+        quantity: quantity.present ? quantity.value : this.quantity,
+        price: price.present ? price.value : this.price,
+        amount: amount ?? this.amount,
+        currency: currency ?? this.currency,
+        occurredAt: occurredAt ?? this.occurredAt,
+        note: note.present ? note.value : this.note,
+        createdAt: createdAt ?? this.createdAt,
+      );
+  TransactionEntry copyWithCompanion(TransactionsCompanion data) {
+    return TransactionEntry(
+      id: data.id.present ? data.id.value : this.id,
+      assetType: data.assetType.present ? data.assetType.value : this.assetType,
+      assetId: data.assetId.present ? data.assetId.value : this.assetId,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      quantity: data.quantity.present ? data.quantity.value : this.quantity,
+      price: data.price.present ? data.price.value : this.price,
+      amount: data.amount.present ? data.amount.value : this.amount,
+      currency: data.currency.present ? data.currency.value : this.currency,
+      occurredAt:
+          data.occurredAt.present ? data.occurredAt.value : this.occurredAt,
+      note: data.note.present ? data.note.value : this.note,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TransactionEntry(')
+          ..write('id: $id, ')
+          ..write('assetType: $assetType, ')
+          ..write('assetId: $assetId, ')
+          ..write('kind: $kind, ')
+          ..write('quantity: $quantity, ')
+          ..write('price: $price, ')
+          ..write('amount: $amount, ')
+          ..write('currency: $currency, ')
+          ..write('occurredAt: $occurredAt, ')
+          ..write('note: $note, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, assetType, assetId, kind, quantity, price,
+      amount, currency, occurredAt, note, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TransactionEntry &&
+          other.id == this.id &&
+          other.assetType == this.assetType &&
+          other.assetId == this.assetId &&
+          other.kind == this.kind &&
+          other.quantity == this.quantity &&
+          other.price == this.price &&
+          other.amount == this.amount &&
+          other.currency == this.currency &&
+          other.occurredAt == this.occurredAt &&
+          other.note == this.note &&
+          other.createdAt == this.createdAt);
+}
+
+class TransactionsCompanion extends UpdateCompanion<TransactionEntry> {
+  final Value<String> id;
+  final Value<String> assetType;
+  final Value<String> assetId;
+  final Value<String> kind;
+  final Value<String?> quantity;
+  final Value<String?> price;
+  final Value<String> amount;
+  final Value<String> currency;
+  final Value<DateTime> occurredAt;
+  final Value<String?> note;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const TransactionsCompanion({
+    this.id = const Value.absent(),
+    this.assetType = const Value.absent(),
+    this.assetId = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.quantity = const Value.absent(),
+    this.price = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.currency = const Value.absent(),
+    this.occurredAt = const Value.absent(),
+    this.note = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TransactionsCompanion.insert({
+    required String id,
+    required String assetType,
+    required String assetId,
+    required String kind,
+    this.quantity = const Value.absent(),
+    this.price = const Value.absent(),
+    required String amount,
+    required String currency,
+    required DateTime occurredAt,
+    this.note = const Value.absent(),
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        assetType = Value(assetType),
+        assetId = Value(assetId),
+        kind = Value(kind),
+        amount = Value(amount),
+        currency = Value(currency),
+        occurredAt = Value(occurredAt),
+        createdAt = Value(createdAt);
+  static Insertable<TransactionEntry> custom({
+    Expression<String>? id,
+    Expression<String>? assetType,
+    Expression<String>? assetId,
+    Expression<String>? kind,
+    Expression<String>? quantity,
+    Expression<String>? price,
+    Expression<String>? amount,
+    Expression<String>? currency,
+    Expression<DateTime>? occurredAt,
+    Expression<String>? note,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (assetType != null) 'asset_type': assetType,
+      if (assetId != null) 'asset_id': assetId,
+      if (kind != null) 'kind': kind,
+      if (quantity != null) 'quantity': quantity,
+      if (price != null) 'price': price,
+      if (amount != null) 'amount': amount,
+      if (currency != null) 'currency': currency,
+      if (occurredAt != null) 'occurred_at': occurredAt,
+      if (note != null) 'note': note,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TransactionsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? assetType,
+      Value<String>? assetId,
+      Value<String>? kind,
+      Value<String?>? quantity,
+      Value<String?>? price,
+      Value<String>? amount,
+      Value<String>? currency,
+      Value<DateTime>? occurredAt,
+      Value<String?>? note,
+      Value<DateTime>? createdAt,
+      Value<int>? rowid}) {
+    return TransactionsCompanion(
+      id: id ?? this.id,
+      assetType: assetType ?? this.assetType,
+      assetId: assetId ?? this.assetId,
+      kind: kind ?? this.kind,
+      quantity: quantity ?? this.quantity,
+      price: price ?? this.price,
+      amount: amount ?? this.amount,
+      currency: currency ?? this.currency,
+      occurredAt: occurredAt ?? this.occurredAt,
+      note: note ?? this.note,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (assetType.present) {
+      map['asset_type'] = Variable<String>(assetType.value);
+    }
+    if (assetId.present) {
+      map['asset_id'] = Variable<String>(assetId.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(kind.value);
+    }
+    if (quantity.present) {
+      map['quantity'] = Variable<String>(quantity.value);
+    }
+    if (price.present) {
+      map['price'] = Variable<String>(price.value);
+    }
+    if (amount.present) {
+      map['amount'] = Variable<String>(amount.value);
+    }
+    if (currency.present) {
+      map['currency'] = Variable<String>(currency.value);
+    }
+    if (occurredAt.present) {
+      map['occurred_at'] = Variable<DateTime>(occurredAt.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TransactionsCompanion(')
+          ..write('id: $id, ')
+          ..write('assetType: $assetType, ')
+          ..write('assetId: $assetId, ')
+          ..write('kind: $kind, ')
+          ..write('quantity: $quantity, ')
+          ..write('price: $price, ')
+          ..write('amount: $amount, ')
+          ..write('currency: $currency, ')
+          ..write('occurredAt: $occurredAt, ')
+          ..write('note: $note, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $NetWorthSnapshotsTable extends NetWorthSnapshots
+    with TableInfo<$NetWorthSnapshotsTable, NetWorthSnapshotEntry> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $NetWorthSnapshotsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _capturedAtMeta =
+      const VerificationMeta('capturedAt');
+  @override
+  late final GeneratedColumn<DateTime> capturedAt = GeneratedColumn<DateTime>(
+      'captured_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _displayCurrencyMeta =
+      const VerificationMeta('displayCurrency');
+  @override
+  late final GeneratedColumn<String> displayCurrency = GeneratedColumn<String>(
+      'display_currency', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _totalAssetsMeta =
+      const VerificationMeta('totalAssets');
+  @override
+  late final GeneratedColumn<String> totalAssets = GeneratedColumn<String>(
+      'total_assets', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _totalLiabilitiesMeta =
+      const VerificationMeta('totalLiabilities');
+  @override
+  late final GeneratedColumn<String> totalLiabilities = GeneratedColumn<String>(
+      'total_liabilities', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _netWorthMeta =
+      const VerificationMeta('netWorth');
+  @override
+  late final GeneratedColumn<String> netWorth = GeneratedColumn<String>(
+      'net_worth', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _breakdownJsonMeta =
+      const VerificationMeta('breakdownJson');
+  @override
+  late final GeneratedColumn<String> breakdownJson = GeneratedColumn<String>(
+      'breakdown_json', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        capturedAt,
+        displayCurrency,
+        totalAssets,
+        totalLiabilities,
+        netWorth,
+        breakdownJson,
+        createdAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'net_worth_snapshots';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<NetWorthSnapshotEntry> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('captured_at')) {
+      context.handle(
+          _capturedAtMeta,
+          capturedAt.isAcceptableOrUnknown(
+              data['captured_at']!, _capturedAtMeta));
+    } else if (isInserting) {
+      context.missing(_capturedAtMeta);
+    }
+    if (data.containsKey('display_currency')) {
+      context.handle(
+          _displayCurrencyMeta,
+          displayCurrency.isAcceptableOrUnknown(
+              data['display_currency']!, _displayCurrencyMeta));
+    } else if (isInserting) {
+      context.missing(_displayCurrencyMeta);
+    }
+    if (data.containsKey('total_assets')) {
+      context.handle(
+          _totalAssetsMeta,
+          totalAssets.isAcceptableOrUnknown(
+              data['total_assets']!, _totalAssetsMeta));
+    } else if (isInserting) {
+      context.missing(_totalAssetsMeta);
+    }
+    if (data.containsKey('total_liabilities')) {
+      context.handle(
+          _totalLiabilitiesMeta,
+          totalLiabilities.isAcceptableOrUnknown(
+              data['total_liabilities']!, _totalLiabilitiesMeta));
+    } else if (isInserting) {
+      context.missing(_totalLiabilitiesMeta);
+    }
+    if (data.containsKey('net_worth')) {
+      context.handle(_netWorthMeta,
+          netWorth.isAcceptableOrUnknown(data['net_worth']!, _netWorthMeta));
+    } else if (isInserting) {
+      context.missing(_netWorthMeta);
+    }
+    if (data.containsKey('breakdown_json')) {
+      context.handle(
+          _breakdownJsonMeta,
+          breakdownJson.isAcceptableOrUnknown(
+              data['breakdown_json']!, _breakdownJsonMeta));
+    } else if (isInserting) {
+      context.missing(_breakdownJsonMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  List<Set<GeneratedColumn>> get uniqueKeys => [
+        {capturedAt, displayCurrency},
+      ];
+  @override
+  NetWorthSnapshotEntry map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return NetWorthSnapshotEntry(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      capturedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}captured_at'])!,
+      displayCurrency: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}display_currency'])!,
+      totalAssets: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}total_assets'])!,
+      totalLiabilities: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}total_liabilities'])!,
+      netWorth: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}net_worth'])!,
+      breakdownJson: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}breakdown_json'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+    );
+  }
+
+  @override
+  $NetWorthSnapshotsTable createAlias(String alias) {
+    return $NetWorthSnapshotsTable(attachedDatabase, alias);
+  }
+}
+
+class NetWorthSnapshotEntry extends DataClass
+    implements Insertable<NetWorthSnapshotEntry> {
+  final String id;
+
+  /// Midnight of the snapshot day (local timezone).
+  final DateTime capturedAt;
+  final String displayCurrency;
+
+  /// All amounts stored as text Decimal in [displayCurrency].
+  final String totalAssets;
+  final String totalLiabilities;
+  final String netWorth;
+
+  /// JSON map: { "stock": "1234.5", "cash": "...", "real_estate": "...", "loan": "..." }
+  /// Loan value is positive (the magnitude of liabilities).
+  final String breakdownJson;
+  final DateTime createdAt;
+  const NetWorthSnapshotEntry(
+      {required this.id,
+      required this.capturedAt,
+      required this.displayCurrency,
+      required this.totalAssets,
+      required this.totalLiabilities,
+      required this.netWorth,
+      required this.breakdownJson,
+      required this.createdAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['captured_at'] = Variable<DateTime>(capturedAt);
+    map['display_currency'] = Variable<String>(displayCurrency);
+    map['total_assets'] = Variable<String>(totalAssets);
+    map['total_liabilities'] = Variable<String>(totalLiabilities);
+    map['net_worth'] = Variable<String>(netWorth);
+    map['breakdown_json'] = Variable<String>(breakdownJson);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  NetWorthSnapshotsCompanion toCompanion(bool nullToAbsent) {
+    return NetWorthSnapshotsCompanion(
+      id: Value(id),
+      capturedAt: Value(capturedAt),
+      displayCurrency: Value(displayCurrency),
+      totalAssets: Value(totalAssets),
+      totalLiabilities: Value(totalLiabilities),
+      netWorth: Value(netWorth),
+      breakdownJson: Value(breakdownJson),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory NetWorthSnapshotEntry.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return NetWorthSnapshotEntry(
+      id: serializer.fromJson<String>(json['id']),
+      capturedAt: serializer.fromJson<DateTime>(json['capturedAt']),
+      displayCurrency: serializer.fromJson<String>(json['displayCurrency']),
+      totalAssets: serializer.fromJson<String>(json['totalAssets']),
+      totalLiabilities: serializer.fromJson<String>(json['totalLiabilities']),
+      netWorth: serializer.fromJson<String>(json['netWorth']),
+      breakdownJson: serializer.fromJson<String>(json['breakdownJson']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'capturedAt': serializer.toJson<DateTime>(capturedAt),
+      'displayCurrency': serializer.toJson<String>(displayCurrency),
+      'totalAssets': serializer.toJson<String>(totalAssets),
+      'totalLiabilities': serializer.toJson<String>(totalLiabilities),
+      'netWorth': serializer.toJson<String>(netWorth),
+      'breakdownJson': serializer.toJson<String>(breakdownJson),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  NetWorthSnapshotEntry copyWith(
+          {String? id,
+          DateTime? capturedAt,
+          String? displayCurrency,
+          String? totalAssets,
+          String? totalLiabilities,
+          String? netWorth,
+          String? breakdownJson,
+          DateTime? createdAt}) =>
+      NetWorthSnapshotEntry(
+        id: id ?? this.id,
+        capturedAt: capturedAt ?? this.capturedAt,
+        displayCurrency: displayCurrency ?? this.displayCurrency,
+        totalAssets: totalAssets ?? this.totalAssets,
+        totalLiabilities: totalLiabilities ?? this.totalLiabilities,
+        netWorth: netWorth ?? this.netWorth,
+        breakdownJson: breakdownJson ?? this.breakdownJson,
+        createdAt: createdAt ?? this.createdAt,
+      );
+  NetWorthSnapshotEntry copyWithCompanion(NetWorthSnapshotsCompanion data) {
+    return NetWorthSnapshotEntry(
+      id: data.id.present ? data.id.value : this.id,
+      capturedAt:
+          data.capturedAt.present ? data.capturedAt.value : this.capturedAt,
+      displayCurrency: data.displayCurrency.present
+          ? data.displayCurrency.value
+          : this.displayCurrency,
+      totalAssets:
+          data.totalAssets.present ? data.totalAssets.value : this.totalAssets,
+      totalLiabilities: data.totalLiabilities.present
+          ? data.totalLiabilities.value
+          : this.totalLiabilities,
+      netWorth: data.netWorth.present ? data.netWorth.value : this.netWorth,
+      breakdownJson: data.breakdownJson.present
+          ? data.breakdownJson.value
+          : this.breakdownJson,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('NetWorthSnapshotEntry(')
+          ..write('id: $id, ')
+          ..write('capturedAt: $capturedAt, ')
+          ..write('displayCurrency: $displayCurrency, ')
+          ..write('totalAssets: $totalAssets, ')
+          ..write('totalLiabilities: $totalLiabilities, ')
+          ..write('netWorth: $netWorth, ')
+          ..write('breakdownJson: $breakdownJson, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, capturedAt, displayCurrency, totalAssets,
+      totalLiabilities, netWorth, breakdownJson, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is NetWorthSnapshotEntry &&
+          other.id == this.id &&
+          other.capturedAt == this.capturedAt &&
+          other.displayCurrency == this.displayCurrency &&
+          other.totalAssets == this.totalAssets &&
+          other.totalLiabilities == this.totalLiabilities &&
+          other.netWorth == this.netWorth &&
+          other.breakdownJson == this.breakdownJson &&
+          other.createdAt == this.createdAt);
+}
+
+class NetWorthSnapshotsCompanion
+    extends UpdateCompanion<NetWorthSnapshotEntry> {
+  final Value<String> id;
+  final Value<DateTime> capturedAt;
+  final Value<String> displayCurrency;
+  final Value<String> totalAssets;
+  final Value<String> totalLiabilities;
+  final Value<String> netWorth;
+  final Value<String> breakdownJson;
+  final Value<DateTime> createdAt;
+  final Value<int> rowid;
+  const NetWorthSnapshotsCompanion({
+    this.id = const Value.absent(),
+    this.capturedAt = const Value.absent(),
+    this.displayCurrency = const Value.absent(),
+    this.totalAssets = const Value.absent(),
+    this.totalLiabilities = const Value.absent(),
+    this.netWorth = const Value.absent(),
+    this.breakdownJson = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  NetWorthSnapshotsCompanion.insert({
+    required String id,
+    required DateTime capturedAt,
+    required String displayCurrency,
+    required String totalAssets,
+    required String totalLiabilities,
+    required String netWorth,
+    required String breakdownJson,
+    required DateTime createdAt,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        capturedAt = Value(capturedAt),
+        displayCurrency = Value(displayCurrency),
+        totalAssets = Value(totalAssets),
+        totalLiabilities = Value(totalLiabilities),
+        netWorth = Value(netWorth),
+        breakdownJson = Value(breakdownJson),
+        createdAt = Value(createdAt);
+  static Insertable<NetWorthSnapshotEntry> custom({
+    Expression<String>? id,
+    Expression<DateTime>? capturedAt,
+    Expression<String>? displayCurrency,
+    Expression<String>? totalAssets,
+    Expression<String>? totalLiabilities,
+    Expression<String>? netWorth,
+    Expression<String>? breakdownJson,
+    Expression<DateTime>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (capturedAt != null) 'captured_at': capturedAt,
+      if (displayCurrency != null) 'display_currency': displayCurrency,
+      if (totalAssets != null) 'total_assets': totalAssets,
+      if (totalLiabilities != null) 'total_liabilities': totalLiabilities,
+      if (netWorth != null) 'net_worth': netWorth,
+      if (breakdownJson != null) 'breakdown_json': breakdownJson,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  NetWorthSnapshotsCompanion copyWith(
+      {Value<String>? id,
+      Value<DateTime>? capturedAt,
+      Value<String>? displayCurrency,
+      Value<String>? totalAssets,
+      Value<String>? totalLiabilities,
+      Value<String>? netWorth,
+      Value<String>? breakdownJson,
+      Value<DateTime>? createdAt,
+      Value<int>? rowid}) {
+    return NetWorthSnapshotsCompanion(
+      id: id ?? this.id,
+      capturedAt: capturedAt ?? this.capturedAt,
+      displayCurrency: displayCurrency ?? this.displayCurrency,
+      totalAssets: totalAssets ?? this.totalAssets,
+      totalLiabilities: totalLiabilities ?? this.totalLiabilities,
+      netWorth: netWorth ?? this.netWorth,
+      breakdownJson: breakdownJson ?? this.breakdownJson,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (capturedAt.present) {
+      map['captured_at'] = Variable<DateTime>(capturedAt.value);
+    }
+    if (displayCurrency.present) {
+      map['display_currency'] = Variable<String>(displayCurrency.value);
+    }
+    if (totalAssets.present) {
+      map['total_assets'] = Variable<String>(totalAssets.value);
+    }
+    if (totalLiabilities.present) {
+      map['total_liabilities'] = Variable<String>(totalLiabilities.value);
+    }
+    if (netWorth.present) {
+      map['net_worth'] = Variable<String>(netWorth.value);
+    }
+    if (breakdownJson.present) {
+      map['breakdown_json'] = Variable<String>(breakdownJson.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('NetWorthSnapshotsCompanion(')
+          ..write('id: $id, ')
+          ..write('capturedAt: $capturedAt, ')
+          ..write('displayCurrency: $displayCurrency, ')
+          ..write('totalAssets: $totalAssets, ')
+          ..write('totalLiabilities: $totalLiabilities, ')
+          ..write('netWorth: $netWorth, ')
+          ..write('breakdownJson: $breakdownJson, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2800,18 +3817,32 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $LoansTable loans = $LoansTable(this);
   late final $CashAccountsTable cashAccounts = $CashAccountsTable(this);
   late final $ExchangeRatesTable exchangeRates = $ExchangeRatesTable(this);
+  late final $TransactionsTable transactions = $TransactionsTable(this);
+  late final $NetWorthSnapshotsTable netWorthSnapshots =
+      $NetWorthSnapshotsTable(this);
   late final StockDao stockDao = StockDao(this as AppDatabase);
   late final RealEstateDao realEstateDao = RealEstateDao(this as AppDatabase);
   late final LoanDao loanDao = LoanDao(this as AppDatabase);
   late final CashDao cashDao = CashDao(this as AppDatabase);
   late final ExchangeRateDao exchangeRateDao =
       ExchangeRateDao(this as AppDatabase);
+  late final TransactionDao transactionDao =
+      TransactionDao(this as AppDatabase);
+  late final NetWorthSnapshotDao netWorthSnapshotDao =
+      NetWorthSnapshotDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities =>
-      [stocks, realEstate, loans, cashAccounts, exchangeRates];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [
+        stocks,
+        realEstate,
+        loans,
+        cashAccounts,
+        exchangeRates,
+        transactions,
+        netWorthSnapshots
+      ];
 }
 
 typedef $$StocksTableCreateCompanionBuilder = StocksCompanion Function({
@@ -4116,6 +5147,496 @@ typedef $$ExchangeRatesTableProcessedTableManager = ProcessedTableManager<
     ),
     ExchangeRateEntry,
     PrefetchHooks Function()>;
+typedef $$TransactionsTableCreateCompanionBuilder = TransactionsCompanion
+    Function({
+  required String id,
+  required String assetType,
+  required String assetId,
+  required String kind,
+  Value<String?> quantity,
+  Value<String?> price,
+  required String amount,
+  required String currency,
+  required DateTime occurredAt,
+  Value<String?> note,
+  required DateTime createdAt,
+  Value<int> rowid,
+});
+typedef $$TransactionsTableUpdateCompanionBuilder = TransactionsCompanion
+    Function({
+  Value<String> id,
+  Value<String> assetType,
+  Value<String> assetId,
+  Value<String> kind,
+  Value<String?> quantity,
+  Value<String?> price,
+  Value<String> amount,
+  Value<String> currency,
+  Value<DateTime> occurredAt,
+  Value<String?> note,
+  Value<DateTime> createdAt,
+  Value<int> rowid,
+});
+
+class $$TransactionsTableFilterComposer
+    extends Composer<_$AppDatabase, $TransactionsTable> {
+  $$TransactionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get assetType => $composableBuilder(
+      column: $table.assetType, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get assetId => $composableBuilder(
+      column: $table.assetId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get kind => $composableBuilder(
+      column: $table.kind, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get quantity => $composableBuilder(
+      column: $table.quantity, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get price => $composableBuilder(
+      column: $table.price, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get amount => $composableBuilder(
+      column: $table.amount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get currency => $composableBuilder(
+      column: $table.currency, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get occurredAt => $composableBuilder(
+      column: $table.occurredAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get note => $composableBuilder(
+      column: $table.note, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$TransactionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $TransactionsTable> {
+  $$TransactionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get assetType => $composableBuilder(
+      column: $table.assetType, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get assetId => $composableBuilder(
+      column: $table.assetId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+      column: $table.kind, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get quantity => $composableBuilder(
+      column: $table.quantity, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get price => $composableBuilder(
+      column: $table.price, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get amount => $composableBuilder(
+      column: $table.amount, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get currency => $composableBuilder(
+      column: $table.currency, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get occurredAt => $composableBuilder(
+      column: $table.occurredAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get note => $composableBuilder(
+      column: $table.note, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$TransactionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TransactionsTable> {
+  $$TransactionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get assetType =>
+      $composableBuilder(column: $table.assetType, builder: (column) => column);
+
+  GeneratedColumn<String> get assetId =>
+      $composableBuilder(column: $table.assetId, builder: (column) => column);
+
+  GeneratedColumn<String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get quantity =>
+      $composableBuilder(column: $table.quantity, builder: (column) => column);
+
+  GeneratedColumn<String> get price =>
+      $composableBuilder(column: $table.price, builder: (column) => column);
+
+  GeneratedColumn<String> get amount =>
+      $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<String> get currency =>
+      $composableBuilder(column: $table.currency, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get occurredAt => $composableBuilder(
+      column: $table.occurredAt, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$TransactionsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $TransactionsTable,
+    TransactionEntry,
+    $$TransactionsTableFilterComposer,
+    $$TransactionsTableOrderingComposer,
+    $$TransactionsTableAnnotationComposer,
+    $$TransactionsTableCreateCompanionBuilder,
+    $$TransactionsTableUpdateCompanionBuilder,
+    (
+      TransactionEntry,
+      BaseReferences<_$AppDatabase, $TransactionsTable, TransactionEntry>
+    ),
+    TransactionEntry,
+    PrefetchHooks Function()> {
+  $$TransactionsTableTableManager(_$AppDatabase db, $TransactionsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TransactionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TransactionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TransactionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> assetType = const Value.absent(),
+            Value<String> assetId = const Value.absent(),
+            Value<String> kind = const Value.absent(),
+            Value<String?> quantity = const Value.absent(),
+            Value<String?> price = const Value.absent(),
+            Value<String> amount = const Value.absent(),
+            Value<String> currency = const Value.absent(),
+            Value<DateTime> occurredAt = const Value.absent(),
+            Value<String?> note = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              TransactionsCompanion(
+            id: id,
+            assetType: assetType,
+            assetId: assetId,
+            kind: kind,
+            quantity: quantity,
+            price: price,
+            amount: amount,
+            currency: currency,
+            occurredAt: occurredAt,
+            note: note,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String assetType,
+            required String assetId,
+            required String kind,
+            Value<String?> quantity = const Value.absent(),
+            Value<String?> price = const Value.absent(),
+            required String amount,
+            required String currency,
+            required DateTime occurredAt,
+            Value<String?> note = const Value.absent(),
+            required DateTime createdAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              TransactionsCompanion.insert(
+            id: id,
+            assetType: assetType,
+            assetId: assetId,
+            kind: kind,
+            quantity: quantity,
+            price: price,
+            amount: amount,
+            currency: currency,
+            occurredAt: occurredAt,
+            note: note,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$TransactionsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $TransactionsTable,
+    TransactionEntry,
+    $$TransactionsTableFilterComposer,
+    $$TransactionsTableOrderingComposer,
+    $$TransactionsTableAnnotationComposer,
+    $$TransactionsTableCreateCompanionBuilder,
+    $$TransactionsTableUpdateCompanionBuilder,
+    (
+      TransactionEntry,
+      BaseReferences<_$AppDatabase, $TransactionsTable, TransactionEntry>
+    ),
+    TransactionEntry,
+    PrefetchHooks Function()>;
+typedef $$NetWorthSnapshotsTableCreateCompanionBuilder
+    = NetWorthSnapshotsCompanion Function({
+  required String id,
+  required DateTime capturedAt,
+  required String displayCurrency,
+  required String totalAssets,
+  required String totalLiabilities,
+  required String netWorth,
+  required String breakdownJson,
+  required DateTime createdAt,
+  Value<int> rowid,
+});
+typedef $$NetWorthSnapshotsTableUpdateCompanionBuilder
+    = NetWorthSnapshotsCompanion Function({
+  Value<String> id,
+  Value<DateTime> capturedAt,
+  Value<String> displayCurrency,
+  Value<String> totalAssets,
+  Value<String> totalLiabilities,
+  Value<String> netWorth,
+  Value<String> breakdownJson,
+  Value<DateTime> createdAt,
+  Value<int> rowid,
+});
+
+class $$NetWorthSnapshotsTableFilterComposer
+    extends Composer<_$AppDatabase, $NetWorthSnapshotsTable> {
+  $$NetWorthSnapshotsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get capturedAt => $composableBuilder(
+      column: $table.capturedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get displayCurrency => $composableBuilder(
+      column: $table.displayCurrency,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get totalAssets => $composableBuilder(
+      column: $table.totalAssets, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get totalLiabilities => $composableBuilder(
+      column: $table.totalLiabilities,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get netWorth => $composableBuilder(
+      column: $table.netWorth, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get breakdownJson => $composableBuilder(
+      column: $table.breakdownJson, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$NetWorthSnapshotsTableOrderingComposer
+    extends Composer<_$AppDatabase, $NetWorthSnapshotsTable> {
+  $$NetWorthSnapshotsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get capturedAt => $composableBuilder(
+      column: $table.capturedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get displayCurrency => $composableBuilder(
+      column: $table.displayCurrency,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get totalAssets => $composableBuilder(
+      column: $table.totalAssets, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get totalLiabilities => $composableBuilder(
+      column: $table.totalLiabilities,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get netWorth => $composableBuilder(
+      column: $table.netWorth, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get breakdownJson => $composableBuilder(
+      column: $table.breakdownJson,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$NetWorthSnapshotsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $NetWorthSnapshotsTable> {
+  $$NetWorthSnapshotsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get capturedAt => $composableBuilder(
+      column: $table.capturedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get displayCurrency => $composableBuilder(
+      column: $table.displayCurrency, builder: (column) => column);
+
+  GeneratedColumn<String> get totalAssets => $composableBuilder(
+      column: $table.totalAssets, builder: (column) => column);
+
+  GeneratedColumn<String> get totalLiabilities => $composableBuilder(
+      column: $table.totalLiabilities, builder: (column) => column);
+
+  GeneratedColumn<String> get netWorth =>
+      $composableBuilder(column: $table.netWorth, builder: (column) => column);
+
+  GeneratedColumn<String> get breakdownJson => $composableBuilder(
+      column: $table.breakdownJson, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$NetWorthSnapshotsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $NetWorthSnapshotsTable,
+    NetWorthSnapshotEntry,
+    $$NetWorthSnapshotsTableFilterComposer,
+    $$NetWorthSnapshotsTableOrderingComposer,
+    $$NetWorthSnapshotsTableAnnotationComposer,
+    $$NetWorthSnapshotsTableCreateCompanionBuilder,
+    $$NetWorthSnapshotsTableUpdateCompanionBuilder,
+    (
+      NetWorthSnapshotEntry,
+      BaseReferences<_$AppDatabase, $NetWorthSnapshotsTable,
+          NetWorthSnapshotEntry>
+    ),
+    NetWorthSnapshotEntry,
+    PrefetchHooks Function()> {
+  $$NetWorthSnapshotsTableTableManager(
+      _$AppDatabase db, $NetWorthSnapshotsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$NetWorthSnapshotsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$NetWorthSnapshotsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$NetWorthSnapshotsTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<DateTime> capturedAt = const Value.absent(),
+            Value<String> displayCurrency = const Value.absent(),
+            Value<String> totalAssets = const Value.absent(),
+            Value<String> totalLiabilities = const Value.absent(),
+            Value<String> netWorth = const Value.absent(),
+            Value<String> breakdownJson = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              NetWorthSnapshotsCompanion(
+            id: id,
+            capturedAt: capturedAt,
+            displayCurrency: displayCurrency,
+            totalAssets: totalAssets,
+            totalLiabilities: totalLiabilities,
+            netWorth: netWorth,
+            breakdownJson: breakdownJson,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required DateTime capturedAt,
+            required String displayCurrency,
+            required String totalAssets,
+            required String totalLiabilities,
+            required String netWorth,
+            required String breakdownJson,
+            required DateTime createdAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              NetWorthSnapshotsCompanion.insert(
+            id: id,
+            capturedAt: capturedAt,
+            displayCurrency: displayCurrency,
+            totalAssets: totalAssets,
+            totalLiabilities: totalLiabilities,
+            netWorth: netWorth,
+            breakdownJson: breakdownJson,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$NetWorthSnapshotsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $NetWorthSnapshotsTable,
+    NetWorthSnapshotEntry,
+    $$NetWorthSnapshotsTableFilterComposer,
+    $$NetWorthSnapshotsTableOrderingComposer,
+    $$NetWorthSnapshotsTableAnnotationComposer,
+    $$NetWorthSnapshotsTableCreateCompanionBuilder,
+    $$NetWorthSnapshotsTableUpdateCompanionBuilder,
+    (
+      NetWorthSnapshotEntry,
+      BaseReferences<_$AppDatabase, $NetWorthSnapshotsTable,
+          NetWorthSnapshotEntry>
+    ),
+    NetWorthSnapshotEntry,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4130,4 +5651,8 @@ class $AppDatabaseManager {
       $$CashAccountsTableTableManager(_db, _db.cashAccounts);
   $$ExchangeRatesTableTableManager get exchangeRates =>
       $$ExchangeRatesTableTableManager(_db, _db.exchangeRates);
+  $$TransactionsTableTableManager get transactions =>
+      $$TransactionsTableTableManager(_db, _db.transactions);
+  $$NetWorthSnapshotsTableTableManager get netWorthSnapshots =>
+      $$NetWorthSnapshotsTableTableManager(_db, _db.netWorthSnapshots);
 }

@@ -10,6 +10,19 @@ If this session paused (token limit), next session should:
 3. Pick up at the first `[ ]` unchecked box below
 4. After finishing each box, tick it and commit
 
+## ⚠️ Codegen reminder
+Whenever Drift table/DAO files change, regenerate before building/testing:
+```bash
+flutter pub get
+flutter pub run build_runner build --delete-conflicting-outputs
+```
+Files affected by Stage 1c onward:
+- `lib/data/database/app_database.g.dart`
+- `lib/data/database/daos/transaction_dao.g.dart`
+- `lib/data/database/daos/net_worth_snapshot_dao.g.dart`
+These are NOT committed by this session (they're generated artefacts);
+the user must run codegen locally before `flutter run` / `flutter test`.
+
 ## Stage 1 — Data layer + theme + free price (lowest risk)
 
 ### 1a. Free price query (A5)

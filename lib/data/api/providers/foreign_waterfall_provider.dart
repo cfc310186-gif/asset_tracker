@@ -25,8 +25,9 @@ class ForeignWaterfallProvider implements StockPriceProvider {
     final stooqQuote = await _stooq.getQuote(symbol, market);
     if (stooqQuote != null) return stooqQuote;
 
-    if (_alphaVantage != null) {
-      final avQuote = await _alphaVantage.getQuote(symbol, market);
+    final av = _alphaVantage;
+    if (av != null) {
+      final avQuote = await av.getQuote(symbol, market);
       if (avQuote != null) return avQuote;
     }
 
