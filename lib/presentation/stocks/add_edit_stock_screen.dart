@@ -57,6 +57,7 @@ class _AddEditStockScreenState extends ConsumerState<AddEditStockScreen> {
     );
     _market = h?.market ?? _detectMarket(_symbolCtrl.text);
     _currency = _market.defaultCurrency;
+    _isMargin = h?.isMargin ?? false;
 
     _symbolCtrl.addListener(_onSymbolChanged);
   }

@@ -10,6 +10,9 @@ class CashAccounts extends Table {
   TextColumn get bankName => text().nullable()();
   TextColumn get balance => text()();
   TextColumn get currency => text()();
+  /// Annual interest rate as a plain decimal string (e.g. "0.015" = 1.5%).
+  /// Nullable: accounts added before the rate feature keep null.
+  TextColumn get annualRate => text().nullable()();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 

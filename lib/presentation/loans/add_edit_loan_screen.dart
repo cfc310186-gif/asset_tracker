@@ -33,14 +33,36 @@ class _AddEditLoanScreenState extends ConsumerState<AddEditLoanScreen> {
   late CurrencyCode _currency;
   late DateTime _startDate;
   bool _hasGracePeriod = false;
-  DateTime? _gracePeriodEndDate;
   Decimal? _calculatedPayment;
   bool _isSaving = false;
 
   bool get _isEditing => widget.loan != null;
-  bool get _showGracePeriod =>
-      _loanType == LoanType.mortgage ||
-      _loanType == LoanType.stockMarginLoan;
+
+  /// Grace-period toggle is only meaningful for mortgages. Stock-pledge loans
+  /// are interest-only by nature so the concept does not apply.
+  bool get _showGracePeriod => _loanType == LoanType.mortgage;
+
+  /// Stock-pledge loans (股票質押貸): borrower pays only interest each month;
+  /// principal is settled at term end. The monthly payment is therefore
+  /// `principal * annualRate / 12`, not a standard amortized payment.
+  bool get _isInterestOnly => _loanType == LoanType.stockMarginLoan;
+
+  /// Computed grace-period end date: start date + N months. Clamped to the
+  /// last day of the target month when the source day doesn't exist there.
+  DateTime? get _computedGraceEndDate {
+    if (!_hasGracePeriod) return null;
+    final months = int.tryParse(_gracePeriodMonthsCtrl.text.trim());
+    if (months == null || months <= 0) return null;
+    final targetYear = _startDate.year + (_startDate.month + months - 1) ~/ 12;
+    final targetMonth = (_startDate.month + months - 1) % 12 + 1;
+    // Guard against month overflow (e.g. Jan 31 + 1 month → Feb 28).
+    final lastDayOfTargetMonth =
+        DateTime(targetYear, targetMonth + 1, 0).day;
+    final day = _startDate.day <= lastDayOfTargetMonth
+        ? _startDate.day
+        : lastDayOfTargetMonth;
+    return DateTime(targetYear, targetMonth, day);
+  }
 
   @override
   void initState() {
@@ -69,9 +91,6 @@ class _AddEditLoanScreenState extends ConsumerState<AddEditLoanScreen> {
         ? DateTime.parse(l.startDate)
         : DateTime.now();
     _hasGracePeriod = l?.hasGracePeriod ?? false;
-    _gracePeriodEndDate = l?.gracePeriodEndDate != null
-        ? DateTime.parse(l!.gracePeriodEndDate!)
-        : null;
     _calculatedPayment = l?.monthlyPayment;
   }
 
@@ -91,22 +110,32 @@ class _AddEditLoanScreenState extends ConsumerState<AddEditLoanScreen> {
     final rateText = _rateCtrl.text.trim();
     final termText = _termCtrl.text.trim();
 
-    if (principalText.isEmpty || rateText.isEmpty || termText.isEmpty) return;
+    if (principalText.isEmpty || rateText.isEmpty) return;
+    if (!_isInterestOnly && termText.isEmpty) return;
 
     try {
       final principal = Decimal.parse(principalText);
       final annualRate =
           (Decimal.parse(rateText) / Decimal.fromInt(100))
               .toDecimal(scaleOnInfinitePrecision: 10);
-      final term = int.parse(termText);
 
-      if (principal <= Decimal.zero || term <= 0) return;
+      if (principal <= Decimal.zero) return;
 
-      final payment = LoanCalculator.calculateMonthlyPayment(
-        principal: principal,
-        annualRate: annualRate,
-        termMonths: term,
-      );
+      final Decimal payment;
+      if (_isInterestOnly) {
+        payment = LoanCalculator.calculateInterestOnlyPayment(
+          principal: principal,
+          annualRate: annualRate,
+        );
+      } else {
+        final term = int.parse(termText);
+        if (term <= 0) return;
+        payment = LoanCalculator.calculateMonthlyPayment(
+          principal: principal,
+          annualRate: annualRate,
+          termMonths: term,
+        );
+      }
       setState(() => _calculatedPayment = payment);
     } on Exception {
       // Ignore parse errors during typing
@@ -159,6 +188,7 @@ class _AddEditLoanScreenState extends ConsumerState<AddEditLoanScreen> {
                       _loanType = v;
                       if (!_showGracePeriod) _hasGracePeriod = false;
                     });
+                    _recalculate();
                   }
                 },
               ),
@@ -242,16 +272,12 @@ class _AddEditLoanScreenState extends ConsumerState<AddEditLoanScreen> {
                 _GracePeriodSection(
                   hasGracePeriod: _hasGracePeriod,
                   gracePeriodMonthsCtrl: _gracePeriodMonthsCtrl,
-                  gracePeriodEndDate: _gracePeriodEndDate,
+                  computedEndDate: _computedGraceEndDate,
                   onToggle: (v) => setState(() {
                     _hasGracePeriod = v;
-                    if (!v) {
-                      _gracePeriodMonthsCtrl.clear();
-                      _gracePeriodEndDate = null;
-                    }
+                    if (!v) _gracePeriodMonthsCtrl.clear();
                   }),
-                  onEndDateChanged: (d) =>
-                      setState(() => _gracePeriodEndDate = d),
+                  onMonthsChanged: () => setState(() {}),
                 ),
               ],
               const SizedBox(height: 16),
@@ -323,17 +349,23 @@ class _AddEditLoanScreenState extends ConsumerState<AddEditLoanScreen> {
       final now = DateTime.now();
       final existing = widget.loan;
 
-      final payment = _calculatedPayment ??
-          LoanCalculator.calculateMonthlyPayment(
-            principal: principal,
-            annualRate: annualRate,
-            termMonths: term,
-          );
+      final payment = _isInterestOnly
+          ? LoanCalculator.calculateInterestOnlyPayment(
+              principal: principal,
+              annualRate: annualRate,
+            )
+          : (_calculatedPayment ??
+              LoanCalculator.calculateMonthlyPayment(
+                principal: principal,
+                annualRate: annualRate,
+                termMonths: term,
+              ));
 
       final gracePeriodMonths = (_hasGracePeriod &&
               _gracePeriodMonthsCtrl.text.trim().isNotEmpty)
           ? int.tryParse(_gracePeriodMonthsCtrl.text.trim())
           : null;
+      final computedGraceEnd = _computedGraceEndDate;
 
       final loan = Loan(
         id: existing?.id ?? const Uuid().v4(),
@@ -347,8 +379,8 @@ class _AddEditLoanScreenState extends ConsumerState<AddEditLoanScreen> {
         currency: _currency,
         hasGracePeriod: _hasGracePeriod,
         gracePeriodMonths: gracePeriodMonths,
-        gracePeriodEndDate: (_hasGracePeriod && _gracePeriodEndDate != null)
-            ? _gracePeriodEndDate!.toIso8601String().substring(0, 10)
+        gracePeriodEndDate: (_hasGracePeriod && computedGraceEnd != null)
+            ? computedGraceEnd.toIso8601String().substring(0, 10)
             : null,
         startDate: _startDate.toIso8601String().substring(0, 10),
         sourceType: existing?.sourceType ?? 'manual',
@@ -413,16 +445,16 @@ class _GracePeriodSection extends StatelessWidget {
   const _GracePeriodSection({
     required this.hasGracePeriod,
     required this.gracePeriodMonthsCtrl,
-    required this.gracePeriodEndDate,
+    required this.computedEndDate,
     required this.onToggle,
-    required this.onEndDateChanged,
+    required this.onMonthsChanged,
   });
 
   final bool hasGracePeriod;
   final TextEditingController gracePeriodMonthsCtrl;
-  final DateTime? gracePeriodEndDate;
+  final DateTime? computedEndDate;
   final ValueChanged<bool> onToggle;
-  final ValueChanged<DateTime> onEndDateChanged;
+  final VoidCallback onMonthsChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -444,6 +476,7 @@ class _GracePeriodSection extends StatelessWidget {
               border: OutlineInputBorder(),
             ),
             keyboardType: TextInputType.number,
+            onChanged: (_) => onMonthsChanged(),
             validator: (v) {
               if (v == null || v.trim().isEmpty) return null;
               final n = int.tryParse(v.trim());
@@ -452,26 +485,23 @@ class _GracePeriodSection extends StatelessWidget {
             },
           ),
           const SizedBox(height: 8),
-          InkWell(
-            onTap: () async {
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: gracePeriodEndDate ?? DateTime.now(),
-                firstDate: DateTime(2000),
-                lastDate: DateTime(2100),
-              );
-              if (picked != null) onEndDateChanged(picked);
-            },
-            child: InputDecorator(
-              decoration: const InputDecoration(
-                labelText: '寬限期結束日期',
-                border: OutlineInputBorder(),
-                suffixIcon: Icon(Icons.calendar_today),
-              ),
-              child: Text(
-                gracePeriodEndDate != null
-                    ? gracePeriodEndDate!.toIso8601String().substring(0, 10)
-                    : '請選擇日期',
+          InputDecorator(
+            decoration: InputDecoration(
+              labelText: '寬限期結束日期（自動計算）',
+              border: const OutlineInputBorder(),
+              helperText: '由開始日期 + 寬限期月數推算',
+              filled: true,
+              fillColor:
+                  Theme.of(context).colorScheme.surfaceContainerHighest,
+            ),
+            child: Text(
+              computedEndDate != null
+                  ? computedEndDate!.toIso8601String().substring(0, 10)
+                  : '請輸入寬限期月數',
+              style: TextStyle(
+                color: computedEndDate != null
+                    ? Theme.of(context).colorScheme.onSurface
+                    : Theme.of(context).hintColor,
               ),
             ),
           ),

@@ -47,6 +47,8 @@ class CashRepositoryImpl implements CashRepository {
         bankName: e.bankName,
         balance: Decimal.parse(e.balance),
         currency: CurrencyCode.values.byName(e.currency),
+        annualRate:
+            e.annualRate != null ? Decimal.parse(e.annualRate!) : null,
         createdAt: e.createdAt,
         updatedAt: e.updatedAt,
       );
@@ -57,6 +59,7 @@ class CashRepositoryImpl implements CashRepository {
         bankName: Value(a.bankName),
         balance: Value(a.balance.toString()),
         currency: Value(a.currency.name),
+        annualRate: Value(a.annualRate?.toString()),
         createdAt: Value(a.createdAt),
         updatedAt: Value(a.updatedAt),
       );
