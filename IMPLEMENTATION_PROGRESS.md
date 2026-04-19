@@ -64,27 +64,27 @@ the user must run codegen locally before `flutter run` / `flutter test`.
 - [x] Commit: "feat: transaction recording + daily net worth snapshots"
 
 ## Stage 3 — Reports + Dashboard (UI work, most complex)
-- [ ] Create `presentation/reports/reports_screen.dart` with 3 tabs
-- [ ] Create `widgets/net_worth_trend_chart.dart`
-- [ ] Create `widgets/category_comparison_chart.dart`
-- [ ] Create `widgets/transactions_list.dart`
-- [ ] Add `/reports` route + nav item
-- [ ] Dashboard sparkline
-- [ ] Dashboard desktop two-column layout
-- [ ] Commit: "feat: reports screen + dashboard revamp"
+- [x] Create `presentation/reports/reports_screen.dart` with 3 tabs
+- [x] Create `widgets/net_worth_trend_chart.dart`
+- [x] Create `widgets/category_comparison_chart.dart`
+- [x] Create `widgets/transactions_list.dart`
+- [x] Add `/reports` route + nav item
+- [x] Dashboard sparkline
+- [x] Dashboard desktop two-column layout
+- [x] Commit: "feat: reports screen + dashboard revamp"
 
 ## Stage 4 — Tests + CI
-- [ ] Add `http_mock_adapter` to dev_dependencies
-- [ ] `test/providers/stooq_provider_test.dart`
-- [ ] `test/providers/foreign_waterfall_provider_test.dart`
-- [ ] `test/usecases/calculate_net_worth_test.dart`
-- [ ] `test/usecases/record_transaction_test.dart`
-- [ ] `test/usecases/capture_net_worth_snapshot_test.dart`
-- [ ] `e2e/tests/price_no_key.spec.ts`
-- [ ] `e2e/tests/theme.spec.ts`
-- [ ] `e2e/tests/reports.spec.ts`
-- [ ] `.github/workflows/test.yml`
-- [ ] Commit: "test: unit + provider + e2e coverage; add CI"
+- [x] Add `http_mock_adapter` to dev_dependencies
+- [x] `test/providers/stooq_provider_test.dart`
+- [x] `test/providers/foreign_waterfall_provider_test.dart`
+- [x] `test/usecases/calculate_net_worth_test.dart`
+- [x] `test/usecases/record_transaction_test.dart`
+- [x] `test/usecases/capture_net_worth_snapshot_test.dart`
+- [x] `e2e/tests/price_no_key.spec.ts`
+- [x] `e2e/tests/theme.spec.ts`
+- [x] `e2e/tests/reports.spec.ts`
+- [x] `.github/workflows/test.yml`
+- [x] Commit: "test: unit + provider + e2e coverage; add CI"
 
 ## Resumption cheat sheet
 - Each stage's files are listed in the plan's "關鍵檔案" section
