@@ -5,9 +5,8 @@ import 'package:decimal/decimal.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class _FakeProvider implements StockPriceProvider {
-  _FakeProvider({this.quote, this.shouldThrow = false});
+  _FakeProvider({this.quote});
   final StockQuote? quote;
-  final bool shouldThrow;
   int callCount = 0;
 
   @override
@@ -16,7 +15,6 @@ class _FakeProvider implements StockPriceProvider {
   @override
   Future<StockQuote?> getQuote(String symbol, MarketCode market) async {
     callCount++;
-    if (shouldThrow) throw Exception('boom');
     return quote;
   }
 
