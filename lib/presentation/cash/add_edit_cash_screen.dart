@@ -5,7 +5,9 @@ import 'package:uuid/uuid.dart';
 
 import '../../domain/enums/currency_code.dart';
 import '../../domain/models/cash_account.dart';
+import '../../domain/models/transaction.dart';
 import '../../providers/repository_providers.dart';
+import '../../providers/usecase_providers.dart';
 
 class AddEditCashScreen extends ConsumerStatefulWidget {
   const AddEditCashScreen({super.key, this.account});
@@ -160,6 +162,29 @@ class _AddEditCashScreenState extends ConsumerState<AddEditCashScreen> {
       );
 
       await ref.read(cashRepositoryProvider).save(account);
+
+      // Record the mutation as an audit entry so reports can trace changes.
+      final oldBalance = existing?.balance ?? Decimal.zero;
+      final delta = account.balance - oldBalance;
+      if (existing == null) {
+        await ref.read(recordTransactionProvider).execute(
+              assetType: TransactionAssetType.cash,
+              assetId: account.id,
+              kind: TransactionKind.deposit,
+              amount: account.balance,
+              currency: account.currency,
+            );
+      } else if (delta != Decimal.zero) {
+        await ref.read(recordTransactionProvider).execute(
+              assetType: TransactionAssetType.cash,
+              assetId: account.id,
+              kind: delta > Decimal.zero
+                  ? TransactionKind.deposit
+                  : TransactionKind.withdraw,
+              amount: delta,
+              currency: account.currency,
+            );
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
