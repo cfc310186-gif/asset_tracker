@@ -1,11 +1,19 @@
 import { Locator } from '@playwright/test'
 import { BasePage } from './BasePage'
 
+/**
+ * Cash accounts list / add-edit page object.
+ *
+ * Uses `flt-semantics-identifier` locators for the FAB and empty state
+ * (see `cash_list_screen.dart`) to keep selectors stable across builds.
+ */
 export class CashPage extends BasePage {
+  /** FAB that opens the add-cash route. */
   get addButton(): Locator {
-    return this.page.getByRole('button', { name: /add|新增/i })
+    return this.fab('fab-add-cash')
   }
 
+  // ---- form fields --------------------------------------------------------
   get nameField(): Locator {
     return this.page.getByLabel('帳戶名稱')
   }
@@ -22,8 +30,12 @@ export class CashPage extends BasePage {
     return this.page.getByText('儲存')
   }
 
+  // ---- list screen --------------------------------------------------------
+  /** Empty-state container. Marked via `cash-empty-state` identifier. */
   get emptyState(): Locator {
-    return this.page.getByText('尚未新增現金帳戶')
+    return this.page
+      .locator('[flt-semantics-identifier="cash-empty-state"]')
+      .or(this.page.getByText('尚未新增現金帳戶'))
   }
 
   /** Find a listed cash account by name. */
@@ -32,8 +44,7 @@ export class CashPage extends BasePage {
   }
 
   async navigateToAdd(): Promise<void> {
-    // FAB on list screen
-    await this.page.getByRole('button').filter({ hasText: '' }).last().click()
+    await this.addButton.click()
     await this.page.waitForTimeout(300)
   }
 
