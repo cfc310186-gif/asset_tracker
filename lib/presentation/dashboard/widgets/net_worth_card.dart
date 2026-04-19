@@ -17,7 +17,11 @@ class NetWorthCard extends StatelessWidget {
     final netWorthColor =
         netWorth < Decimal.zero ? AppTheme.lossColor : AppTheme.gainColor;
 
-    return Card(
+    return Semantics(
+      identifier: 'net-worth-card',
+      label: '總淨資產',
+      container: true,
+      child: Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -68,6 +72,7 @@ class NetWorthCard extends StatelessWidget {
           ],
         ),
       ),
+    ),
     );
   }
 }

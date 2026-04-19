@@ -18,7 +18,11 @@ class CashListScreen extends ConsumerWidget {
       appBar: AppBar(title: const Text('現金帳戶')),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push('/cash/add'),
-        child: const Icon(Icons.add),
+        tooltip: '新增現金帳戶',
+        child: Semantics(
+          identifier: 'fab-add-cash',
+          child: const Icon(Icons.add),
+        ),
       ),
       body: StreamBuilder<List<CashAccount>>(
         stream: repo.watchAll(),
@@ -34,22 +38,27 @@ class CashListScreen extends ConsumerWidget {
           final accounts = snapshot.data ?? [];
 
           if (accounts.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.account_balance_wallet_outlined,
-                      size: 64, color: Colors.grey),
-                  const SizedBox(height: 16),
-                  const Text('尚未新增現金帳戶',
-                      style: TextStyle(fontSize: 18, color: Colors.grey)),
-                  const SizedBox(height: 24),
-                  ElevatedButton.icon(
-                    onPressed: () => context.push('/cash/add'),
-                    icon: const Icon(Icons.add),
-                    label: const Text('新增帳戶'),
-                  ),
-                ],
+            return Semantics(
+              identifier: 'cash-empty-state',
+              label: '尚未新增現金帳戶',
+              container: true,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.account_balance_wallet_outlined,
+                        size: 64, color: Colors.grey),
+                    const SizedBox(height: 16),
+                    const Text('尚未新增現金帳戶',
+                        style: TextStyle(fontSize: 18, color: Colors.grey)),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: () => context.push('/cash/add'),
+                      icon: const Icon(Icons.add),
+                      label: const Text('新增帳戶'),
+                    ),
+                  ],
+                ),
               ),
             );
           }

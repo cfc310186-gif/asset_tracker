@@ -183,23 +183,26 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   Row(
                     children: [
                       const Expanded(child: Text('主題模式')),
-                      DropdownButton<ThemeMode>(
-                        value: themeMode,
-                        onChanged: _onThemeModeChanged,
-                        items: const [
-                          DropdownMenuItem(
-                            value: ThemeMode.system,
-                            child: Text('跟隨系統'),
-                          ),
-                          DropdownMenuItem(
-                            value: ThemeMode.light,
-                            child: Text('淺色'),
-                          ),
-                          DropdownMenuItem(
-                            value: ThemeMode.dark,
-                            child: Text('深色'),
-                          ),
-                        ],
+                      Semantics(
+                        identifier: 'theme-mode-dropdown',
+                        child: DropdownButton<ThemeMode>(
+                          value: themeMode,
+                          onChanged: _onThemeModeChanged,
+                          items: const [
+                            DropdownMenuItem(
+                              value: ThemeMode.system,
+                              child: Text('跟隨系統'),
+                            ),
+                            DropdownMenuItem(
+                              value: ThemeMode.light,
+                              child: Text('淺色'),
+                            ),
+                            DropdownMenuItem(
+                              value: ThemeMode.dark,
+                              child: Text('深色'),
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),

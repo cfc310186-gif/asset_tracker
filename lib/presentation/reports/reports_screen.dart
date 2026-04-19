@@ -69,11 +69,26 @@ class ReportsScreen extends ConsumerWidget {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('報表'),
-          bottom: const TabBar(
+          bottom: TabBar(
             tabs: [
-              Tab(text: '淨資產走勢'),
-              Tab(text: '類別比較'),
-              Tab(text: '交易明細'),
+              Tab(
+                child: Semantics(
+                  identifier: 'tab-trend',
+                  child: const Text('淨資產走勢'),
+                ),
+              ),
+              Tab(
+                child: Semantics(
+                  identifier: 'tab-comparison',
+                  child: const Text('類別比較'),
+                ),
+              ),
+              Tab(
+                child: Semantics(
+                  identifier: 'tab-transactions',
+                  child: const Text('交易明細'),
+                ),
+              ),
             ],
           ),
         ),
@@ -105,8 +120,13 @@ class _TrendTab extends ConsumerWidget {
         children: [
           SegmentedButton<ReportPeriod>(
             segments: ReportPeriod.values
-                .map((p) =>
-                    ButtonSegment(value: p, label: Text(p.label)))
+                .map((p) => ButtonSegment(
+                      value: p,
+                      label: Semantics(
+                        identifier: 'period-${p.label}',
+                        child: Text(p.label),
+                      ),
+                    ))
                 .toList(),
             selected: {period},
             onSelectionChanged: (set) =>
