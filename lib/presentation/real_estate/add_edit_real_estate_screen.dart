@@ -129,7 +129,7 @@ class _AddEditRealEstateScreenState
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<CurrencyCode>(
-                initialValue: _currency,
+                value: _currency,
                 decoration: const InputDecoration(
                   labelText: '幣別',
                   border: OutlineInputBorder(),
