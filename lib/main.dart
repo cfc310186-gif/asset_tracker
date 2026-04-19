@@ -15,7 +15,7 @@ Future<void> main() async {
   runApp(
     ProviderScope(
       overrides: [
-        sharedPrefsProvider.overrideWith((ref) async => prefs),
+        sharedPrefsProvider.overrideWith((ref) => prefs),
         themeModeProvider.overrideWith((ref) => loadThemeMode(prefs)),
         displayCurrencyProvider
             .overrideWith((ref) => loadDisplayCurrency(prefs)),
