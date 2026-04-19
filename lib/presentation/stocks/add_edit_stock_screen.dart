@@ -73,15 +73,18 @@ class _AddEditStockScreenState extends ConsumerState<AddEditStockScreen> {
     super.dispose();
   }
 
-  MarketCode _detectMarket(String symbol) {
+  /// Pure market detection — [current] is passed in so this can be called
+  /// safely from initState before `_market` has been initialised. The old
+  /// version read `_market` directly, which threw `LateInitializationError`
+  /// on the add-new path and rendered a blank screen on mobile web.
+  MarketCode _detectMarket(String symbol, [MarketCode? current]) {
     if (_isTaiwanSymbol(symbol)) return MarketCode.taiwan;
-    // Keep current non-taiwan market if already set to us/uk.
-    if (_market == MarketCode.us || _market == MarketCode.uk) return _market;
+    if (current == MarketCode.us || current == MarketCode.uk) return current!;
     return MarketCode.us;
   }
 
   void _onSymbolChanged() {
-    final detected = _detectMarket(_symbolCtrl.text);
+    final detected = _detectMarket(_symbolCtrl.text, _market);
     if (detected != _market) {
       setState(() {
         _market = detected;
