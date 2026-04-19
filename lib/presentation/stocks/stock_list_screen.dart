@@ -294,7 +294,7 @@ class _NoApiKeyBanner extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              '尚未設定 Alpha Vantage API Key，美股／英股價格無法自動更新。',
+              '免費來源 (Stooq) 已啟用；若遇網路限制或需更準確資料，可在設定補上 Alpha Vantage API Key。',
               style: TextStyle(fontSize: 13, color: Colors.amber.shade900),
             ),
           ),

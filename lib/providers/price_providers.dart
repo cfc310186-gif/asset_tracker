@@ -4,7 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/api/providers/alpha_vantage_provider.dart';
 import '../data/api/providers/emerging_provider.dart';
 import '../data/api/providers/exchange_rate_provider.dart';
-import '../data/api/providers/noop_foreign_provider.dart';
+import '../data/api/providers/foreign_waterfall_provider.dart';
+import '../data/api/providers/stooq_provider.dart';
 import '../data/api/providers/taiwan_waterfall_provider.dart';
 import '../data/api/providers/tpex_provider.dart';
 import '../data/api/providers/twse_provider.dart';
@@ -46,12 +47,19 @@ final exchangeRateProviderP = Provider(
 
 final priceRepositoryProvider = Provider<PriceRepository>((ref) {
   final db = ref.watch(databaseProvider);
-  final avKey = ref.watch(alphaVantageKeyProvider);
+  final avKey = ref.watch(alphaVantageKeyProvider).trim();
+  final corsProxy = ref.watch(corsProxyUrlProvider).trim();
+  final dio = ref.watch(dioProvider);
 
-  // Use Alpha Vantage when a key is configured; otherwise no-op (prices stay null).
-  final foreignProvider = avKey.trim().isNotEmpty
-      ? AlphaVantageProvider(ref.watch(dioProvider), avKey.trim())
-      : const NoOpForeignProvider();
+  // Stooq is free and keyless — always available as the primary foreign source.
+  final stooq = StooqProvider(dio, corsProxyUrl: corsProxy);
+  final alphaVantage =
+      avKey.isNotEmpty ? AlphaVantageProvider(dio, avKey) : null;
+
+  final foreignProvider = ForeignWaterfallProvider(
+    stooq: stooq,
+    alphaVantage: alphaVantage,
+  );
 
   return PriceRepositoryImpl(
     taiwanProvider: ref.watch(taiwanProviderP),

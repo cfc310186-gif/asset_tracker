@@ -16,6 +16,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   final _alphaVantageController = TextEditingController();
   final _exchangeRateController = TextEditingController();
+  final _corsProxyController = TextEditingController();
 
   bool _isRefreshingPrices = false;
   bool _isRefreshingRates = false;
@@ -31,6 +32,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void dispose() {
     _alphaVantageController.dispose();
     _exchangeRateController.dispose();
+    _corsProxyController.dispose();
     super.dispose();
   }
 
@@ -44,17 +46,35 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           prefs.getString(AppConstants.prefAlphaVantageApiKey) ?? '';
       final erKey =
           prefs.getString(AppConstants.prefExchangeRateApiKey) ?? '';
+      final corsProxy = loadCorsProxyUrl(prefs);
+      final themeMode = loadThemeMode(prefs);
 
       // Populate the provider so priceRepositoryProvider picks the right source.
       ref.read(alphaVantageKeyProvider.notifier).state = avKey;
+      ref.read(corsProxyUrlProvider.notifier).state = corsProxy;
+      ref.read(themeModeProvider.notifier).state = themeMode;
 
       if (mounted) {
         setState(() {
           _alphaVantageController.text = avKey;
           _exchangeRateController.text = erKey;
+          _corsProxyController.text = corsProxy;
         });
       }
     });
+  }
+
+  Future<void> _onThemeModeChanged(ThemeMode? mode) async {
+    if (mode == null) return;
+    ref.read(themeModeProvider.notifier).state = mode;
+    final prefsAsync = ref.read(sharedPrefsProvider);
+    prefsAsync.whenData((prefs) => saveThemeMode(prefs, mode));
+  }
+
+  Future<void> _saveCorsProxy(String value) async {
+    ref.read(corsProxyUrlProvider.notifier).state = value;
+    final prefsAsync = ref.read(sharedPrefsProvider);
+    prefsAsync.whenData((prefs) => saveCorsProxyUrl(prefs, value));
   }
 
   Future<void> _onCurrencyChanged(CurrencyCode? value) async {
@@ -127,6 +147,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final displayCurrency = ref.watch(displayCurrencyProvider);
+    final themeMode = ref.watch(themeModeProvider);
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -139,20 +160,48 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           Card(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: Row(
+              child: Column(
                 children: [
-                  const Expanded(child: Text('顯示幣別')),
-                  DropdownButton<CurrencyCode>(
-                    value: displayCurrency,
-                    onChanged: _onCurrencyChanged,
-                    items: CurrencyCode.values
-                        .map(
-                          (c) => DropdownMenuItem(
-                            value: c,
-                            child: Text(c.displayName),
+                  Row(
+                    children: [
+                      const Expanded(child: Text('顯示幣別')),
+                      DropdownButton<CurrencyCode>(
+                        value: displayCurrency,
+                        onChanged: _onCurrencyChanged,
+                        items: CurrencyCode.values
+                            .map(
+                              (c) => DropdownMenuItem(
+                                value: c,
+                                child: Text(c.displayName),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 16),
+                  Row(
+                    children: [
+                      const Expanded(child: Text('主題模式')),
+                      DropdownButton<ThemeMode>(
+                        value: themeMode,
+                        onChanged: _onThemeModeChanged,
+                        items: const [
+                          DropdownMenuItem(
+                            value: ThemeMode.system,
+                            child: Text('跟隨系統'),
                           ),
-                        )
-                        .toList(),
+                          DropdownMenuItem(
+                            value: ThemeMode.light,
+                            child: Text('淺色'),
+                          ),
+                          DropdownMenuItem(
+                            value: ThemeMode.dark,
+                            child: Text('深色'),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -171,8 +220,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   TextField(
                     controller: _alphaVantageController,
                     decoration: const InputDecoration(
-                      labelText: 'Alpha Vantage API Key',
-                      helperText: '美股 / 英股查詢需要此 Key。免費申請：alphavantage.co/support/#api-key',
+                      labelText: 'Alpha Vantage API Key（可選）',
+                      helperText:
+                          '免費來源 Stooq 已預設啟用；Key 僅在 Stooq 失敗時作為備援。',
                       border: OutlineInputBorder(),
                     ),
                     onChanged: _saveAlphaVantageKey,
@@ -186,6 +236,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       border: OutlineInputBorder(),
                     ),
                     onChanged: _saveExchangeRateKey,
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _corsProxyController,
+                    decoration: const InputDecoration(
+                      labelText: 'CORS 代理（Web 專用，選填）',
+                      helperText:
+                          '若 Stooq 在瀏覽器被 CORS 阻擋，填入代理 URL，例如 https://corsproxy.io/?',
+                      border: OutlineInputBorder(),
+                    ),
+                    onChanged: _saveCorsProxy,
                   ),
                   const SizedBox(height: 16),
                   FilledButton.icon(

@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -20,6 +21,34 @@ final alphaVantageKeyProvider = StateProvider<String>((ref) => '');
 /// Circular FIFO pointer for stock price refresh queue.
 /// Populated from SharedPreferences by StockListScreen on load.
 final refreshQueuePointerProvider = StateProvider<int>((ref) => 0);
+
+/// Theme mode. Defaults to system; persisted in SharedPreferences.
+final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.system);
+
+/// Optional CORS proxy URL prepended to Stooq requests on Flutter Web.
+/// Empty string means direct call.
+final corsProxyUrlProvider = StateProvider<String>((ref) => '');
+
+Future<void> saveThemeMode(SharedPreferences prefs, ThemeMode mode) async {
+  await prefs.setString(AppConstants.prefThemeMode, mode.name);
+}
+
+ThemeMode loadThemeMode(SharedPreferences prefs) {
+  final raw = prefs.getString(AppConstants.prefThemeMode);
+  if (raw == null) return ThemeMode.system;
+  return ThemeMode.values.firstWhere(
+    (m) => m.name == raw,
+    orElse: () => ThemeMode.system,
+  );
+}
+
+Future<void> saveCorsProxyUrl(SharedPreferences prefs, String url) async {
+  await prefs.setString(AppConstants.prefCorsProxy, url);
+}
+
+String loadCorsProxyUrl(SharedPreferences prefs) {
+  return prefs.getString(AppConstants.prefCorsProxy) ?? '';
+}
 
 /// Persists the selected [CurrencyCode] to SharedPreferences.
 Future<void> saveDisplayCurrency(
