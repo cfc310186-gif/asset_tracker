@@ -23,6 +23,7 @@ const _navDestinations = [
   _NavDest(icon: Icons.home_work, label: '不動產', route: '/real-estate'),
   _NavDest(icon: Icons.account_balance, label: '貸款', route: '/loans'),
   _NavDest(icon: Icons.savings, label: '現金', route: '/cash'),
+  _NavDest(icon: Icons.bar_chart, label: '報表', route: '/reports'),
 ];
 
 class _NavDest {
@@ -64,10 +65,14 @@ class _DesktopScaffold extends StatelessWidget {
                         ),
                   ),
                   const SizedBox(height: 8),
-                  IconButton(
-                    icon: const Icon(Icons.settings_outlined),
-                    tooltip: '設定',
-                    onPressed: () => context.go('/settings'),
+                  Semantics(
+                    identifier: 'nav-/settings',
+                    button: true,
+                    child: IconButton(
+                      icon: const Icon(Icons.settings_outlined),
+                      tooltip: '設定',
+                      onPressed: () => context.go('/settings'),
+                    ),
                   ),
                 ],
               ),
@@ -76,7 +81,10 @@ class _DesktopScaffold extends StatelessWidget {
                 .map(
                   (d) => NavigationRailDestination(
                     icon: Icon(d.icon),
-                    label: Text(d.label),
+                    label: Semantics(
+                      identifier: 'nav-${d.route}',
+                      child: Text(d.label),
+                    ),
                   ),
                 )
                 .toList(),
@@ -103,10 +111,14 @@ class _MobileScaffold extends StatelessWidget {
       appBar: AppBar(
         title: const Text('資產管理'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.settings_outlined),
-            tooltip: '設定',
-            onPressed: () => context.go('/settings'),
+          Semantics(
+            identifier: 'nav-/settings',
+            button: true,
+            child: IconButton(
+              icon: const Icon(Icons.settings_outlined),
+              tooltip: '設定',
+              onPressed: () => context.go('/settings'),
+            ),
           ),
         ],
       ),
@@ -117,7 +129,10 @@ class _MobileScaffold extends StatelessWidget {
         items: _navDestinations
             .map(
               (d) => BottomNavigationBarItem(
-                icon: Icon(d.icon),
+                icon: Semantics(
+                  identifier: 'nav-${d.route}',
+                  child: Icon(d.icon),
+                ),
                 label: d.label,
               ),
             )

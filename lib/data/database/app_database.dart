@@ -5,13 +5,17 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'daos/cash_dao.dart';
 import 'daos/exchange_rate_dao.dart';
 import 'daos/loan_dao.dart';
+import 'daos/net_worth_snapshot_dao.dart';
 import 'daos/real_estate_dao.dart';
 import 'daos/stock_dao.dart';
+import 'daos/transaction_dao.dart';
 import 'tables/cash_accounts_table.dart';
 import 'tables/exchange_rates_table.dart';
 import 'tables/loans_table.dart';
+import 'tables/net_worth_snapshots_table.dart';
 import 'tables/real_estate_table.dart';
 import 'tables/stocks_table.dart';
+import 'tables/transactions_table.dart';
 
 part 'app_database.g.dart';
 
@@ -22,6 +26,8 @@ part 'app_database.g.dart';
     Loans,
     CashAccounts,
     ExchangeRates,
+    Transactions,
+    NetWorthSnapshots,
   ],
   daos: [
     StockDao,
@@ -29,13 +35,26 @@ part 'app_database.g.dart';
     LoanDao,
     CashDao,
     ExchangeRateDao,
+    TransactionDao,
+    NetWorthSnapshotDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) => m.createAll(),
+        onUpgrade: (m, from, to) async {
+          if (from < 2) {
+            await m.createTable(transactions);
+            await m.createTable(netWorthSnapshots);
+          }
+        },
+      );
 
   static QueryExecutor _openConnection() {
     if (kIsWeb) {

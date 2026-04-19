@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import '../../domain/enums/currency_code.dart';
 import '../../domain/enums/market_code.dart';
 import '../../domain/models/stock_holding.dart';
+import '../../domain/models/transaction.dart';
 import '../../providers/repository_providers.dart';
 import '../../providers/usecase_providers.dart';
 
@@ -259,6 +260,32 @@ class _AddEditStockScreenState extends ConsumerState<AddEditStockScreen> {
 
       await ref.read(stockRepositoryProvider).save(holding);
 
+      // Audit-log entry. New holdings record a buy; edits record an adjust
+      // with the delta in shares (skip if quantity unchanged).
+      final qtyDelta = holding.quantity - (existing?.quantity ?? 0);
+      if (existing == null) {
+        await ref.read(recordTransactionProvider).execute(
+              assetType: TransactionAssetType.stock,
+              assetId: holding.id,
+              kind: TransactionKind.buy,
+              quantity: Decimal.fromInt(holding.quantity),
+              price: holding.avgCost,
+              amount: -(holding.avgCost *
+                  Decimal.fromInt(holding.quantity)),
+              currency: holding.currency,
+            );
+      } else if (qtyDelta != 0) {
+        await ref.read(recordTransactionProvider).execute(
+              assetType: TransactionAssetType.stock,
+              assetId: holding.id,
+              kind: qtyDelta > 0 ? TransactionKind.buy : TransactionKind.sell,
+              quantity: Decimal.fromInt(qtyDelta.abs()),
+              price: holding.avgCost,
+              amount: -(holding.avgCost * Decimal.fromInt(qtyDelta)),
+              currency: holding.currency,
+            );
+      }
+
       if (needsNewLoan && marginAmount != null) {
         await ref.read(createMarginLoanProvider).execute(holding);
       } else if (_isMargin &&
@@ -324,7 +351,7 @@ class _ForeignMarketDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<MarketCode>(
-      initialValue: value,
+      value: value,
       decoration: const InputDecoration(
         labelText: '市場 *',
         border: OutlineInputBorder(),

@@ -140,7 +140,7 @@ class _AddEditLoanScreenState extends ConsumerState<AddEditLoanScreen> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<LoanType>(
-                initialValue: _loanType,
+                value: _loanType,
                 decoration: const InputDecoration(
                   labelText: '貸款種類 *',
                   border: OutlineInputBorder(),
@@ -215,7 +215,7 @@ class _AddEditLoanScreenState extends ConsumerState<AddEditLoanScreen> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<CurrencyCode>(
-                initialValue: _currency,
+                value: _currency,
                 decoration: const InputDecoration(
                   labelText: '幣別',
                   border: OutlineInputBorder(),

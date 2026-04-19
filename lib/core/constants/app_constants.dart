@@ -15,6 +15,8 @@ class AppConstants {
   static const prefAlphaVantageApiKey = 'alpha_vantage_api_key';
   static const prefExchangeRateApiKey = 'exchange_rate_api_key';
   static const prefRefreshQueuePointer = 'refresh_queue_pointer';
+  static const prefThemeMode = 'theme_mode';
+  static const prefCorsProxy = 'cors_proxy_url';
 
   /// API rate limiting.
   static const maxRequestsPerMinute = 30;

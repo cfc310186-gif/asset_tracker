@@ -106,16 +106,24 @@ class _StockListScreenState extends ConsumerState<StockListScreen> {
               ),
             )
           else
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              tooltip: '更新股價',
-              onPressed: _refreshPrices,
+            Semantics(
+              identifier: 'btn-refresh-prices',
+              button: true,
+              child: IconButton(
+                icon: const Icon(Icons.refresh),
+                tooltip: '更新股價',
+                onPressed: _refreshPrices,
+              ),
             ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push('/stocks/add'),
-        child: const Icon(Icons.add),
+        tooltip: '新增股票',
+        child: Semantics(
+          identifier: 'fab-add-stock',
+          child: const Icon(Icons.add),
+        ),
       ),
       body: StreamBuilder<List<StockHolding>>(
         stream: repo.watchAll(),
@@ -135,27 +143,32 @@ class _StockListScreenState extends ConsumerState<StockListScreen> {
           final showNoKeyBanner = avKey.trim().isEmpty && hasForeignHoldings;
 
           if (holdings.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.show_chart,
-                    size: 64,
-                    color: Colors.grey,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    '尚未新增股票',
-                    style: TextStyle(fontSize: 18, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton.icon(
-                    onPressed: () => context.push('/stocks/add'),
-                    icon: const Icon(Icons.add),
-                    label: const Text('新增股票'),
-                  ),
-                ],
+            return Semantics(
+              identifier: 'stocks-empty-state',
+              label: '尚未新增股票',
+              container: true,
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.show_chart,
+                      size: 64,
+                      color: Colors.grey,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      '尚未新增股票',
+                      style: TextStyle(fontSize: 18, color: Colors.grey),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: () => context.push('/stocks/add'),
+                      icon: const Icon(Icons.add),
+                      label: const Text('新增股票'),
+                    ),
+                  ],
+                ),
               ),
             );
           }
@@ -279,30 +292,35 @@ class _NoApiKeyBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.amber.shade50,
-        border: Border.all(color: Colors.amber.shade400),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.warning_amber_rounded,
-              color: Colors.amber.shade700, size: 20),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              '尚未設定 Alpha Vantage API Key，美股／英股價格無法自動更新。',
-              style: TextStyle(fontSize: 13, color: Colors.amber.shade900),
+    return Semantics(
+      identifier: 'banner-no-api-key',
+      label: '免費來源已啟用',
+      container: true,
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.amber.shade50,
+          border: Border.all(color: Colors.amber.shade400),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded,
+                color: Colors.amber.shade700, size: 20),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                '免費來源 (Stooq) 已啟用；若遇網路限制或需更準確資料，可在設定補上 Alpha Vantage API Key。',
+                style: TextStyle(fontSize: 13, color: Colors.amber.shade900),
+              ),
             ),
-          ),
-          TextButton(
-            onPressed: onTapSettings,
-            child: const Text('前往設定'),
-          ),
-        ],
+            TextButton(
+              onPressed: onTapSettings,
+              child: const Text('前往設定'),
+            ),
+          ],
+        ),
       ),
     );
   }

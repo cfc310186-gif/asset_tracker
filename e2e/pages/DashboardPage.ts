@@ -1,36 +1,49 @@
 import { Locator } from '@playwright/test'
 import { BasePage } from './BasePage'
 
+/**
+ * Dashboard page object.
+ *
+ * Widgets are annotated with Flutter `Semantics(identifier: ...)` which renders
+ * as the `flt-semantics-identifier` attribute on the semantic DOM node. Tests
+ * prefer this over raw text to avoid false positives (e.g., "股票" appears in
+ * both the navigation rail and the dashboard tile).
+ */
 export class DashboardPage extends BasePage {
-  /** Net worth card headline. */
+  /** Net worth summary card (header + totals). */
   get netWorthCard(): Locator {
-    return this.page.getByText('淨資產')
+    return this.page.locator('[flt-semantics-identifier="net-worth-card"]')
   }
 
-  /** Asset category tiles. */
+  private tile(title: string): Locator {
+    // Semantic identifier first; fall back to text if Flutter version exposes
+    // the identifier attribute under a different name.
+    return this.page
+      .locator(`[flt-semantics-identifier="asset-tile-${title}"]`)
+      .or(this.page.getByLabel(new RegExp(`^${title} `)))
+  }
+
   get stocksTile(): Locator {
-    return this.page.getByText('股票').first()
+    return this.tile('股票')
   }
 
   get realEstateTile(): Locator {
-    return this.page.getByText('不動產').first()
+    return this.tile('不動產')
   }
 
   get cashTile(): Locator {
-    return this.page.getByText('現金').first()
+    return this.tile('現金')
   }
 
   get loansTile(): Locator {
-    return this.page.getByText('貸款').first()
+    return this.tile('貸款')
   }
 
   get breakdownChart(): Locator {
-    // fl_chart renders an SVG canvas — check it exists in DOM
     return this.page.locator('canvas').first()
   }
 
   async waitForData(): Promise<void> {
-    // Spinner disappears when FutureProvider resolves
     await this.page.waitForFunction(() => {
       const spinners = document.querySelectorAll(
         'flt-semantics[aria-label*="載入"], flt-semantics[aria-label*="loading"]',
