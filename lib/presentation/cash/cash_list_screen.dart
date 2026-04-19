@@ -195,6 +195,14 @@ class _CashAccountTile extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onDelete;
 
+  Widget? _buildSubtitle() {
+    final interest = account.estimatedMonthlyInterest;
+    if (interest == null) return null;
+    return Text(
+      '每月利息 ${CurrencyFormatter.format(interest, account.currency)}',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Dismissible(
@@ -215,7 +223,7 @@ class _CashAccountTile extends StatelessWidget {
         onLongPress: onDelete,
         leading: const CircleAvatar(child: Icon(Icons.account_balance_wallet)),
         title: Text(account.name),
-        subtitle: account.bankName != null ? Text(account.bankName!) : null,
+        subtitle: _buildSubtitle(),
         trailing: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.end,

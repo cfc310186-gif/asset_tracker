@@ -23,11 +23,14 @@ class _AddEditRealEstateScreenState
   final _formKey = GlobalKey<FormState>();
 
   late final TextEditingController _nameCtrl;
-  late final TextEditingController _addressCtrl;
   late final TextEditingController _estimatedValueCtrl;
   late final TextEditingController _purchasePriceCtrl;
 
   late CurrencyCode _currency;
+  // Address / purchaseDate are kept in the model for backward compatibility
+  // but no longer surfaced in the form. Existing records preserve their
+  // values; new records default to empty address and today's date.
+  late String _address;
   late DateTime _purchaseDate;
   late bool _hasMortgage;
   bool _isSaving = false;
@@ -39,7 +42,6 @@ class _AddEditRealEstateScreenState
     super.initState();
     final a = widget.asset;
     _nameCtrl = TextEditingController(text: a?.name ?? '');
-    _addressCtrl = TextEditingController(text: a?.address ?? '');
     _estimatedValueCtrl = TextEditingController(
       text: a?.estimatedValue.toString() ?? '',
     );
@@ -47,6 +49,7 @@ class _AddEditRealEstateScreenState
       text: a?.purchasePrice.toString() ?? '',
     );
     _currency = a?.currency ?? CurrencyCode.twd;
+    _address = a?.address ?? '';
     _purchaseDate =
         a != null ? DateTime.parse(a.purchaseDate) : DateTime.now();
     _hasMortgage = a?.hasMortgage ?? false;
@@ -55,7 +58,6 @@ class _AddEditRealEstateScreenState
   @override
   void dispose() {
     _nameCtrl.dispose();
-    _addressCtrl.dispose();
     _estimatedValueCtrl.dispose();
     _purchasePriceCtrl.dispose();
     super.dispose();
@@ -87,17 +89,6 @@ class _AddEditRealEstateScreenState
               ),
               const SizedBox(height: 16),
               TextFormField(
-                controller: _addressCtrl,
-                decoration: const InputDecoration(
-                  labelText: '地址 *',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) =>
-                    (v == null || v.trim().isEmpty) ? '請輸入地址' : null,
-                textInputAction: TextInputAction.next,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
                 controller: _estimatedValueCtrl,
                 decoration: const InputDecoration(
                   labelText: '現值 *',
@@ -120,12 +111,6 @@ class _AddEditRealEstateScreenState
                     const TextInputType.numberWithOptions(decimal: true),
                 validator: _validatePositiveDecimal,
                 textInputAction: TextInputAction.next,
-              ),
-              const SizedBox(height: 16),
-              _DatePickerField(
-                label: '購入日期 *',
-                selectedDate: _purchaseDate,
-                onChanged: (d) => setState(() => _purchaseDate = d),
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<CurrencyCode>(
@@ -238,7 +223,7 @@ class _AddEditRealEstateScreenState
       final asset = RealEstateAsset(
         id: id,
         name: _nameCtrl.text.trim(),
-        address: _addressCtrl.text.trim(),
+        address: _address,
         estimatedValue: Decimal.parse(_estimatedValueCtrl.text.trim()),
         purchasePrice: Decimal.parse(_purchasePriceCtrl.text.trim()),
         purchaseDate: _purchaseDate.toIso8601String().substring(0, 10),
@@ -270,41 +255,6 @@ class _AddEditRealEstateScreenState
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
-  }
-}
-
-class _DatePickerField extends StatelessWidget {
-  const _DatePickerField({
-    required this.label,
-    required this.selectedDate,
-    required this.onChanged,
-  });
-
-  final String label;
-  final DateTime selectedDate;
-  final ValueChanged<DateTime> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () async {
-        final picked = await showDatePicker(
-          context: context,
-          initialDate: selectedDate,
-          firstDate: DateTime(1950),
-          lastDate: DateTime(2100),
-        );
-        if (picked != null) onChanged(picked);
-      },
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-          suffixIcon: const Icon(Icons.calendar_today),
-        ),
-        child: Text(selectedDate.toIso8601String().substring(0, 10)),
-      ),
-    );
   }
 }
 

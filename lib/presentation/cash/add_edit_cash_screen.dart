@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../core/utils/currency_formatter.dart';
 import '../../domain/enums/currency_code.dart';
 import '../../domain/models/cash_account.dart';
 import '../../domain/models/transaction.dart';
@@ -21,8 +22,8 @@ class AddEditCashScreen extends ConsumerStatefulWidget {
 class _AddEditCashScreenState extends ConsumerState<AddEditCashScreen> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
-  late final TextEditingController _bankController;
   late final TextEditingController _balanceController;
+  late final TextEditingController _annualRateController;
   late CurrencyCode _selectedCurrency;
   bool _isSaving = false;
 
@@ -33,18 +34,48 @@ class _AddEditCashScreenState extends ConsumerState<AddEditCashScreen> {
     super.initState();
     final a = widget.account;
     _nameController = TextEditingController(text: a?.name ?? '');
-    _bankController = TextEditingController(text: a?.bankName ?? '');
     _balanceController =
         TextEditingController(text: a?.balance.toString() ?? '');
+    // Display rate as percentage (e.g. 0.015 -> "1.5").
+    final rateDisplay = a?.annualRate != null
+        ? (a!.annualRate! * Decimal.fromInt(100)).toStringAsFixed(2)
+        : '';
+    _annualRateController = TextEditingController(text: rateDisplay);
     _selectedCurrency = a?.currency ?? CurrencyCode.twd;
   }
 
   @override
   void dispose() {
     _nameController.dispose();
-    _bankController.dispose();
     _balanceController.dispose();
+    _annualRateController.dispose();
     super.dispose();
+  }
+
+  Decimal? get _parsedAnnualRate {
+    final text = _annualRateController.text.trim();
+    if (text.isEmpty) return null;
+    try {
+      return (Decimal.parse(text) / Decimal.fromInt(100))
+          .toDecimal(scaleOnInfinitePrecision: 10);
+    } on FormatException {
+      return null;
+    }
+  }
+
+  Decimal? get _previewMonthlyInterest {
+    final rate = _parsedAnnualRate;
+    if (rate == null) return null;
+    final balanceText = _balanceController.text.trim();
+    if (balanceText.isEmpty) return null;
+    try {
+      final balance = Decimal.parse(balanceText);
+      if (balance <= Decimal.zero) return null;
+      return (balance * rate / Decimal.fromInt(12))
+          .toDecimal(scaleOnInfinitePrecision: 10);
+    } on FormatException {
+      return null;
+    }
   }
 
   @override
@@ -72,15 +103,6 @@ class _AddEditCashScreenState extends ConsumerState<AddEditCashScreen> {
               ),
               const SizedBox(height: 16),
               TextFormField(
-                controller: _bankController,
-                decoration: const InputDecoration(
-                  labelText: '銀行名稱',
-                  border: OutlineInputBorder(),
-                ),
-                textInputAction: TextInputAction.next,
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
                 controller: _balanceController,
                 decoration: const InputDecoration(
                   labelText: '餘額 *',
@@ -89,8 +111,30 @@ class _AddEditCashScreenState extends ConsumerState<AddEditCashScreen> {
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
                 validator: _validateBalance,
+                onChanged: (_) => setState(() {}),
+                textInputAction: TextInputAction.next,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _annualRateController,
+                decoration: const InputDecoration(
+                  labelText: '年利率 (%)',
+                  hintText: '例：1.5 代表 1.5%（可留空）',
+                  border: OutlineInputBorder(),
+                ),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                validator: _validateOptionalRate,
+                onChanged: (_) => setState(() {}),
                 textInputAction: TextInputAction.done,
               ),
+              if (_previewMonthlyInterest != null) ...[
+                const SizedBox(height: 8),
+                _MonthlyInterestPreview(
+                  interest: _previewMonthlyInterest!,
+                  currency: _selectedCurrency,
+                ),
+              ],
               const SizedBox(height: 16),
               DropdownButtonFormField<CurrencyCode>(
                 value: _selectedCurrency,
@@ -139,6 +183,18 @@ class _AddEditCashScreenState extends ConsumerState<AddEditCashScreen> {
     return null;
   }
 
+  String? _validateOptionalRate(String? v) {
+    if (v == null || v.trim().isEmpty) return null;
+    try {
+      final d = Decimal.parse(v.trim());
+      if (d < Decimal.zero) return '利率不能為負';
+      if (d > Decimal.fromInt(100)) return '利率不能超過 100%';
+    } on FormatException {
+      return '請輸入有效的數字';
+    }
+    return null;
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -152,11 +208,12 @@ class _AddEditCashScreenState extends ConsumerState<AddEditCashScreen> {
       final account = CashAccount(
         id: existing?.id ?? const Uuid().v4(),
         name: _nameController.text.trim(),
-        bankName: _bankController.text.trim().isEmpty
-            ? null
-            : _bankController.text.trim(),
+        // Bank name field removed from UI; preserve existing record's value
+        // on edit so prior data isn't wiped.
+        bankName: existing?.bankName,
         balance: balance,
         currency: _selectedCurrency,
+        annualRate: _parsedAnnualRate,
         createdAt: existing?.createdAt ?? now,
         updatedAt: now,
       );
@@ -200,5 +257,43 @@ class _AddEditCashScreenState extends ConsumerState<AddEditCashScreen> {
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
+  }
+}
+
+class _MonthlyInterestPreview extends StatelessWidget {
+  const _MonthlyInterestPreview({
+    required this.interest,
+    required this.currency,
+  });
+
+  final Decimal interest;
+  final CurrencyCode currency;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Theme.of(context).dividerColor),
+        borderRadius: BorderRadius.circular(4),
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.savings_outlined,
+            size: 20,
+            color: Theme.of(context).colorScheme.primary,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '每月利息約 ${CurrencyFormatter.format(interest, currency)}',
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -2124,6 +2124,12 @@ class $CashAccountsTable extends CashAccounts
   late final GeneratedColumn<String> currency = GeneratedColumn<String>(
       'currency', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _annualRateMeta =
+      const VerificationMeta('annualRate');
+  @override
+  late final GeneratedColumn<String> annualRate = GeneratedColumn<String>(
+      'annual_rate', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
   static const VerificationMeta _createdAtMeta =
       const VerificationMeta('createdAt');
   @override
@@ -2138,7 +2144,7 @@ class $CashAccountsTable extends CashAccounts
       type: DriftSqlType.dateTime, requiredDuringInsert: true);
   @override
   List<GeneratedColumn> get $columns =>
-      [id, name, bankName, balance, currency, createdAt, updatedAt];
+      [id, name, bankName, balance, currency, annualRate, createdAt, updatedAt];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -2176,6 +2182,12 @@ class $CashAccountsTable extends CashAccounts
     } else if (isInserting) {
       context.missing(_currencyMeta);
     }
+    if (data.containsKey('annual_rate')) {
+      context.handle(
+          _annualRateMeta,
+          annualRate.isAcceptableOrUnknown(
+              data['annual_rate']!, _annualRateMeta));
+    }
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
           createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
@@ -2207,6 +2219,8 @@ class $CashAccountsTable extends CashAccounts
           .read(DriftSqlType.string, data['${effectivePrefix}balance'])!,
       currency: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}currency'])!,
+      annualRate: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}annual_rate']),
       createdAt: attachedDatabase.typeMapping
           .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
       updatedAt: attachedDatabase.typeMapping
@@ -2227,6 +2241,10 @@ class CashAccountEntry extends DataClass
   final String? bankName;
   final String balance;
   final String currency;
+
+  /// Annual interest rate as a plain decimal string (e.g. "0.015" = 1.5%).
+  /// Nullable: accounts added before the rate feature keep null.
+  final String? annualRate;
   final DateTime createdAt;
   final DateTime updatedAt;
   const CashAccountEntry(
@@ -2235,6 +2253,7 @@ class CashAccountEntry extends DataClass
       this.bankName,
       required this.balance,
       required this.currency,
+      this.annualRate,
       required this.createdAt,
       required this.updatedAt});
   @override
@@ -2247,6 +2266,9 @@ class CashAccountEntry extends DataClass
     }
     map['balance'] = Variable<String>(balance);
     map['currency'] = Variable<String>(currency);
+    if (!nullToAbsent || annualRate != null) {
+      map['annual_rate'] = Variable<String>(annualRate);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -2261,6 +2283,9 @@ class CashAccountEntry extends DataClass
           : Value(bankName),
       balance: Value(balance),
       currency: Value(currency),
+      annualRate: annualRate == null && nullToAbsent
+          ? const Value.absent()
+          : Value(annualRate),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -2275,6 +2300,7 @@ class CashAccountEntry extends DataClass
       bankName: serializer.fromJson<String?>(json['bankName']),
       balance: serializer.fromJson<String>(json['balance']),
       currency: serializer.fromJson<String>(json['currency']),
+      annualRate: serializer.fromJson<String?>(json['annualRate']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -2288,6 +2314,7 @@ class CashAccountEntry extends DataClass
       'bankName': serializer.toJson<String?>(bankName),
       'balance': serializer.toJson<String>(balance),
       'currency': serializer.toJson<String>(currency),
+      'annualRate': serializer.toJson<String?>(annualRate),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -2299,6 +2326,7 @@ class CashAccountEntry extends DataClass
           Value<String?> bankName = const Value.absent(),
           String? balance,
           String? currency,
+          Value<String?> annualRate = const Value.absent(),
           DateTime? createdAt,
           DateTime? updatedAt}) =>
       CashAccountEntry(
@@ -2307,6 +2335,7 @@ class CashAccountEntry extends DataClass
         bankName: bankName.present ? bankName.value : this.bankName,
         balance: balance ?? this.balance,
         currency: currency ?? this.currency,
+        annualRate: annualRate.present ? annualRate.value : this.annualRate,
         createdAt: createdAt ?? this.createdAt,
         updatedAt: updatedAt ?? this.updatedAt,
       );
@@ -2317,6 +2346,8 @@ class CashAccountEntry extends DataClass
       bankName: data.bankName.present ? data.bankName.value : this.bankName,
       balance: data.balance.present ? data.balance.value : this.balance,
       currency: data.currency.present ? data.currency.value : this.currency,
+      annualRate:
+          data.annualRate.present ? data.annualRate.value : this.annualRate,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -2330,6 +2361,7 @@ class CashAccountEntry extends DataClass
           ..write('bankName: $bankName, ')
           ..write('balance: $balance, ')
           ..write('currency: $currency, ')
+          ..write('annualRate: $annualRate, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -2337,8 +2369,8 @@ class CashAccountEntry extends DataClass
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, name, bankName, balance, currency, createdAt, updatedAt);
+  int get hashCode => Object.hash(
+      id, name, bankName, balance, currency, annualRate, createdAt, updatedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2348,6 +2380,7 @@ class CashAccountEntry extends DataClass
           other.bankName == this.bankName &&
           other.balance == this.balance &&
           other.currency == this.currency &&
+          other.annualRate == this.annualRate &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -2358,6 +2391,7 @@ class CashAccountsCompanion extends UpdateCompanion<CashAccountEntry> {
   final Value<String?> bankName;
   final Value<String> balance;
   final Value<String> currency;
+  final Value<String?> annualRate;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
@@ -2367,6 +2401,7 @@ class CashAccountsCompanion extends UpdateCompanion<CashAccountEntry> {
     this.bankName = const Value.absent(),
     this.balance = const Value.absent(),
     this.currency = const Value.absent(),
+    this.annualRate = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -2377,6 +2412,7 @@ class CashAccountsCompanion extends UpdateCompanion<CashAccountEntry> {
     this.bankName = const Value.absent(),
     required String balance,
     required String currency,
+    this.annualRate = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.rowid = const Value.absent(),
@@ -2392,6 +2428,7 @@ class CashAccountsCompanion extends UpdateCompanion<CashAccountEntry> {
     Expression<String>? bankName,
     Expression<String>? balance,
     Expression<String>? currency,
+    Expression<String>? annualRate,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
@@ -2402,6 +2439,7 @@ class CashAccountsCompanion extends UpdateCompanion<CashAccountEntry> {
       if (bankName != null) 'bank_name': bankName,
       if (balance != null) 'balance': balance,
       if (currency != null) 'currency': currency,
+      if (annualRate != null) 'annual_rate': annualRate,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -2414,6 +2452,7 @@ class CashAccountsCompanion extends UpdateCompanion<CashAccountEntry> {
       Value<String?>? bankName,
       Value<String>? balance,
       Value<String>? currency,
+      Value<String?>? annualRate,
       Value<DateTime>? createdAt,
       Value<DateTime>? updatedAt,
       Value<int>? rowid}) {
@@ -2423,6 +2462,7 @@ class CashAccountsCompanion extends UpdateCompanion<CashAccountEntry> {
       bankName: bankName ?? this.bankName,
       balance: balance ?? this.balance,
       currency: currency ?? this.currency,
+      annualRate: annualRate ?? this.annualRate,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -2447,6 +2487,9 @@ class CashAccountsCompanion extends UpdateCompanion<CashAccountEntry> {
     if (currency.present) {
       map['currency'] = Variable<String>(currency.value);
     }
+    if (annualRate.present) {
+      map['annual_rate'] = Variable<String>(annualRate.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -2467,6 +2510,7 @@ class CashAccountsCompanion extends UpdateCompanion<CashAccountEntry> {
           ..write('bankName: $bankName, ')
           ..write('balance: $balance, ')
           ..write('currency: $currency, ')
+          ..write('annualRate: $annualRate, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -4777,6 +4821,7 @@ typedef $$CashAccountsTableCreateCompanionBuilder = CashAccountsCompanion
   Value<String?> bankName,
   required String balance,
   required String currency,
+  Value<String?> annualRate,
   required DateTime createdAt,
   required DateTime updatedAt,
   Value<int> rowid,
@@ -4788,6 +4833,7 @@ typedef $$CashAccountsTableUpdateCompanionBuilder = CashAccountsCompanion
   Value<String?> bankName,
   Value<String> balance,
   Value<String> currency,
+  Value<String?> annualRate,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
   Value<int> rowid,
@@ -4816,6 +4862,9 @@ class $$CashAccountsTableFilterComposer
 
   ColumnFilters<String> get currency => $composableBuilder(
       column: $table.currency, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get annualRate => $composableBuilder(
+      column: $table.annualRate, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnFilters(column));
@@ -4848,6 +4897,9 @@ class $$CashAccountsTableOrderingComposer
   ColumnOrderings<String> get currency => $composableBuilder(
       column: $table.currency, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get annualRate => $composableBuilder(
+      column: $table.annualRate, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
       column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 
@@ -4878,6 +4930,9 @@ class $$CashAccountsTableAnnotationComposer
 
   GeneratedColumn<String> get currency =>
       $composableBuilder(column: $table.currency, builder: (column) => column);
+
+  GeneratedColumn<String> get annualRate => $composableBuilder(
+      column: $table.annualRate, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -4917,6 +4972,7 @@ class $$CashAccountsTableTableManager extends RootTableManager<
             Value<String?> bankName = const Value.absent(),
             Value<String> balance = const Value.absent(),
             Value<String> currency = const Value.absent(),
+            Value<String?> annualRate = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
             Value<DateTime> updatedAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
@@ -4927,6 +4983,7 @@ class $$CashAccountsTableTableManager extends RootTableManager<
             bankName: bankName,
             balance: balance,
             currency: currency,
+            annualRate: annualRate,
             createdAt: createdAt,
             updatedAt: updatedAt,
             rowid: rowid,
@@ -4937,6 +4994,7 @@ class $$CashAccountsTableTableManager extends RootTableManager<
             Value<String?> bankName = const Value.absent(),
             required String balance,
             required String currency,
+            Value<String?> annualRate = const Value.absent(),
             required DateTime createdAt,
             required DateTime updatedAt,
             Value<int> rowid = const Value.absent(),
@@ -4947,6 +5005,7 @@ class $$CashAccountsTableTableManager extends RootTableManager<
             bankName: bankName,
             balance: balance,
             currency: currency,
+            annualRate: annualRate,
             createdAt: createdAt,
             updatedAt: updatedAt,
             rowid: rowid,
