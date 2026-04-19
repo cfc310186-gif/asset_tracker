@@ -22,9 +22,6 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Generate code (drift + riverpod)
-        run: dart run build_runner build --delete-conflicting-outputs
-
       - name: Analyze
         run: flutter analyze --no-fatal-infos
 
@@ -52,10 +49,8 @@ jobs:
           cache: 'npm'
           cache-dependency-path: e2e/package-lock.json
 
-      - name: Install Flutter deps + codegen
-        run: |
-          flutter pub get
-          dart run build_runner build --delete-conflicting-outputs
+      - name: Install Flutter deps
+        run: flutter pub get
 
       - name: Build web (release)
         run: flutter build web --release
