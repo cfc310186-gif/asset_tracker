@@ -23,6 +23,7 @@ const _navDestinations = [
   _NavDest(icon: Icons.home_work, label: '不動產', route: '/real-estate'),
   _NavDest(icon: Icons.account_balance, label: '貸款', route: '/loans'),
   _NavDest(icon: Icons.savings, label: '現金', route: '/cash'),
+  _NavDest(icon: Icons.bar_chart, label: '報表', route: '/reports'),
 ];
 
 class _NavDest {
