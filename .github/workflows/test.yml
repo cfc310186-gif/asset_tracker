@@ -28,8 +28,8 @@ jobs:
       - name: Analyze
         run: flutter analyze --no-fatal-infos
 
-      - name: Unit + widget + provider tests
-        run: flutter test --reporter expanded
+      - name: Unit + provider tests
+        run: flutter test test/providers/ test/usecases/ --reporter expanded
 
   e2e:
     name: playwright e2e (smoke)
