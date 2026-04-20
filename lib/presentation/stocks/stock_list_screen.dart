@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/constants/app_constants.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/currency_formatter.dart';
 import '../../domain/enums/market_code.dart';
@@ -21,72 +20,42 @@ class StockListScreen extends ConsumerStatefulWidget {
 
 class _StockListScreenState extends ConsumerState<StockListScreen> {
   bool _isRefreshing = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadQueuePointer();
-  }
-
-  Future<void> _loadQueuePointer() async {
-    final prefsAsync = ref.read(sharedPrefsProvider);
-    prefsAsync.whenData((prefs) {
-      final saved = prefs.getInt(AppConstants.prefRefreshQueuePointer) ?? 0;
-      ref.read(refreshQueuePointerProvider.notifier).state = saved;
-    });
-  }
-
-  Future<void> _saveQueuePointer(int pointer) async {
-    ref.read(refreshQueuePointerProvider.notifier).state = pointer;
-    final prefsAsync = ref.read(sharedPrefsProvider);
-    prefsAsync.whenData(
-      (prefs) => prefs.setInt(AppConstants.prefRefreshQueuePointer, pointer),
-    );
-  }
+  final Set<String> _refreshingIds = <String>{};
 
   Future<void> _refreshPrices() async {
     if (_isRefreshing) return;
     setState(() => _isRefreshing = true);
     try {
-      final pointer = ref.read(refreshQueuePointerProvider);
-      final result = await ref
-          .read(refreshStockPricesProvider)
-          .execute(pointer: pointer);
+      final result = await ref.read(refreshStockPricesProvider).executeAll();
 
-      await _saveQueuePointer(result.nextPointer);
-
-      if (mounted) {
-        final symbol = result.updatedSymbol ?? '—';
-        final pos = result.nextPointer == 0
-            ? result.queueSize
-            : result.nextPointer; // current (1-based)
-        if (result.updated > 0) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                '$symbol 已更新（$pos/${result.queueSize}）→ 下次：${_nextSymbolLabel(result.nextPointer)}',
-              ),
+      if (!mounted) return;
+      if (result.queueSize == 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('尚無股票可更新')),
+        );
+      } else if (result.failed == 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('已更新 ${result.updated}/${result.queueSize} 檔'),
+          ),
+        );
+      } else {
+        final failedList = result.failedSymbols.join('、');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            duration: const Duration(seconds: 6),
+            content: Text(
+              '已更新 ${result.updated}/${result.queueSize} 檔，'
+              '${result.failed} 檔失敗：$failedList',
             ),
-          );
-        } else {
-          // Most common cause on Web: API origin blocks the request because no
-          // CORS proxy is configured (or the configured one is unreachable).
-          // Surface that explicitly with a one-tap shortcut to Settings.
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              duration: const Duration(seconds: 6),
-              content: Text(
-                '$symbol 更新失敗（$pos/${result.queueSize}）— 可能是網路 / CORS 限制，請至設定確認代理設定',
-              ),
-              action: SnackBarAction(
-                label: '前往設定',
-                onPressed: () {
-                  if (mounted) context.push('/settings');
-                },
-              ),
+            action: SnackBarAction(
+              label: '前往設定',
+              onPressed: () {
+                if (mounted) context.push('/settings');
+              },
             ),
-          );
-        }
+          ),
+        );
       }
     } on Exception catch (e) {
       if (mounted) {
@@ -108,19 +77,50 @@ class _StockListScreenState extends ConsumerState<StockListScreen> {
     }
   }
 
-  /// Returns the symbol at [nextPointer] from the current holdings stream,
-  /// or '?' if unavailable.
-  String _nextSymbolLabel(int nextPointer) {
-    // We can't easily access stream data synchronously here;
-    // the pointer indicator in the subtitle handles the display.
-    return '#${nextPointer + 1}';
+  Future<void> _refreshSingle(StockHolding holding) async {
+    if (_refreshingIds.contains(holding.id)) return;
+    setState(() => _refreshingIds.add(holding.id));
+    try {
+      final result = await ref
+          .read(refreshStockPricesProvider)
+          .executeSingle(holding);
+
+      if (!mounted) return;
+      if (result.updated > 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${holding.symbol} 已更新')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            duration: const Duration(seconds: 6),
+            content: Text('${holding.symbol} 更新失敗 — 可能是網路 / CORS 限制'),
+            action: SnackBarAction(
+              label: '前往設定',
+              onPressed: () {
+                if (mounted) context.push('/settings');
+              },
+            ),
+          ),
+        );
+      }
+    } on Exception catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${holding.symbol} 更新失敗：$e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _refreshingIds.remove(holding.id));
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final repo = ref.watch(stockRepositoryProvider);
     final avKey = ref.watch(alphaVantageKeyProvider);
-    final queuePointer = ref.watch(refreshQueuePointerProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -141,7 +141,7 @@ class _StockListScreenState extends ConsumerState<StockListScreen> {
               button: true,
               child: IconButton(
                 icon: const Icon(Icons.refresh),
-                tooltip: '更新股價',
+                tooltip: '全部更新股價',
                 onPressed: _refreshPrices,
               ),
             ),
@@ -203,13 +203,6 @@ class _StockListScreenState extends ConsumerState<StockListScreen> {
             );
           }
 
-          // Stable queue order: sorted by createdAt.
-          final sorted = [...holdings]
-            ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
-          final queueSize = sorted.length;
-          final nextIdx = queuePointer % queueSize;
-          final nextSymbol = sorted[nextIdx].symbol;
-
           // Group by market for display.
           final grouped = <MarketCode, List<StockHolding>>{};
           for (final h in holdings) {
@@ -221,16 +214,16 @@ class _StockListScreenState extends ConsumerState<StockListScreen> {
             children: [
               if (showNoKeyBanner)
                 _NoApiKeyBanner(onTapSettings: () => context.push('/settings')),
-              _QueueIndicator(nextSymbol: nextSymbol, pointer: nextIdx, total: queueSize),
               for (final market in MarketCode.values)
                 if (grouped.containsKey(market)) ...[
                   _MarketGroupHeader(market: market),
                   ...grouped[market]!.map(
                     (h) => _StockTile(
                       holding: h,
-                      isNextInQueue: h.symbol == nextSymbol,
+                      isRefreshing: _refreshingIds.contains(h.id),
                       onTap: () => context.push('/stocks/edit', extra: h),
                       onDelete: () => _confirmDelete(context, ref, h),
+                      onRefresh: () => _refreshSingle(h),
                     ),
                   ),
                 ],
@@ -284,35 +277,6 @@ class _StockListScreenState extends ConsumerState<StockListScreen> {
         }
       }
     }
-  }
-}
-
-class _QueueIndicator extends StatelessWidget {
-  const _QueueIndicator({
-    required this.nextSymbol,
-    required this.pointer,
-    required this.total,
-  });
-
-  final String nextSymbol;
-  final int pointer;
-  final int total;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-      child: Row(
-        children: [
-          Icon(Icons.queue, size: 14, color: Colors.grey.shade500),
-          const SizedBox(width: 4),
-          Text(
-            '下次更新：$nextSymbol（${pointer + 1}/$total）',
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-          ),
-        ],
-      ),
-    );
   }
 }
 
@@ -390,13 +354,15 @@ class _StockTile extends StatelessWidget {
     required this.holding,
     required this.onTap,
     required this.onDelete,
-    this.isNextInQueue = false,
+    required this.onRefresh,
+    this.isRefreshing = false,
   });
 
   final StockHolding holding;
   final VoidCallback onTap;
   final VoidCallback onDelete;
-  final bool isNextInQueue;
+  final VoidCallback onRefresh;
+  final bool isRefreshing;
 
   @override
   Widget build(BuildContext context) {
@@ -488,50 +454,65 @@ class _StockTile extends StatelessWidget {
                 ),
               ),
             ],
-            if (isNextInQueue) ...[
-              const SizedBox(width: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-                decoration: BoxDecoration(
-                  color: Colors.green.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Text(
-                  '▶ 下次',
-                  style: TextStyle(fontSize: 10, color: Colors.green),
-                ),
-              ),
-            ],
           ],
         ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              hasPrice
-                  ? CurrencyFormatter.format(
-                      holding.latestPrice!,
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  hasPrice
+                      ? CurrencyFormatter.format(
+                          holding.latestPrice!,
+                          holding.currency,
+                        )
+                      : '—',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 15,
+                  ),
+                ),
+                if (hasPrice)
+                  Text(
+                    CurrencyFormatter.formatWithSign(
+                      unrealizedGain,
                       holding.currency,
-                    )
-                  : '—',
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
-              ),
+                    ),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: gainColor,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+              ],
             ),
-            if (hasPrice)
-              Text(
-                CurrencyFormatter.formatWithSign(
-                  unrealizedGain,
-                  holding.currency,
-                ),
-                style: TextStyle(
-                  fontSize: 12,
-                  color: gainColor,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
+            const SizedBox(width: 4),
+            SizedBox(
+              width: 36,
+              height: 36,
+              child: isRefreshing
+                  ? const Padding(
+                      padding: EdgeInsets.all(10),
+                      child: SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    )
+                  : Semantics(
+                      identifier: 'btn-refresh-stock-${holding.symbol}',
+                      button: true,
+                      child: IconButton(
+                        icon: const Icon(Icons.refresh, size: 20),
+                        tooltip: '更新此股',
+                        padding: EdgeInsets.zero,
+                        onPressed: onRefresh,
+                      ),
+                    ),
+            ),
           ],
         ),
       ),
