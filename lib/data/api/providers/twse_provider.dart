@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:decimal/decimal.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -6,9 +8,14 @@ import '../../../domain/enums/market_code.dart';
 import '../stock_price_provider.dart';
 
 class TwseProvider implements StockPriceProvider {
-  TwseProvider(this._dio);
+  TwseProvider(this._dio, {this.corsProxyUrl = ''});
 
   final Dio _dio;
+
+  /// Optional CORS proxy URL prefix (e.g. 'https://corsproxy.io/?').
+  /// Required for browser builds because TWSE does not send CORS headers.
+  /// Empty string = direct call (works on native / when origin is allowed).
+  final String corsProxyUrl;
 
   static const _baseUrl =
       'https://mis.twse.com.tw/stock/api/getStockInfo.jsp';
@@ -31,12 +38,17 @@ class TwseProvider implements StockPriceProvider {
 
     final exCh = symbols.map((s) => 'tse_$s.tw').join('|');
     try {
-      final response = await _dio.get<Map<String, dynamic>>(
-        _baseUrl,
-        queryParameters: {'ex_ch': exCh, 'json': '1', 'delay': '0'},
-      );
-
-      final data = response.data;
+      final qs =
+          'ex_ch=${Uri.encodeQueryComponent(exCh)}&json=1&delay=0';
+      final target = '$_baseUrl?$qs';
+      final url = corsProxyUrl.isEmpty ? target : '$corsProxyUrl$target';
+      final response = await _dio.get<dynamic>(url);
+      final raw = response.data;
+      final Map<String, dynamic>? data = raw is Map<String, dynamic>
+          ? raw
+          : raw is String
+              ? _safeJsonDecode(raw)
+              : null;
       if (data == null) return [];
 
       final msgArray = data['msgArray'] as List<dynamic>?;
@@ -52,6 +64,9 @@ class TwseProvider implements StockPriceProvider {
 
         final currentPriceStr = map['z'] as String?;
         final prevCloseStr = map['y'] as String?;
+        final nameStr = (map['n'] as String?)?.trim();
+        final name =
+            (nameStr != null && nameStr.isNotEmpty) ? nameStr : null;
 
         Decimal? price;
         if (currentPriceStr != null &&
@@ -67,7 +82,12 @@ class TwseProvider implements StockPriceProvider {
         }
 
         if (price != null) {
-          quotes.add(StockQuote(symbol: code, price: price, fetchedAt: now));
+          quotes.add(StockQuote(
+            symbol: code,
+            price: price,
+            fetchedAt: now,
+            name: name,
+          ));
         }
       }
 
@@ -78,6 +98,15 @@ class TwseProvider implements StockPriceProvider {
     } on Exception catch (e) {
       debugPrint('[TwseProvider] Exception: $e');
       return [];
+    }
+  }
+
+  Map<String, dynamic>? _safeJsonDecode(String s) {
+    try {
+      final v = jsonDecode(s);
+      return v is Map<String, dynamic> ? v : null;
+    } on FormatException {
+      return null;
     }
   }
 }

@@ -28,7 +28,8 @@ class StooqProvider implements StockPriceProvider {
   @override
   Future<StockQuote?> getQuote(String symbol, MarketCode market) async {
     final stooqSymbol = _formatSymbol(symbol, market);
-    final target = '$_baseUrl?s=$stooqSymbol&f=sd2t2ohlcv&h&e=csv';
+    // f=snd2t2ohlcv => Symbol, Name, Date, Time, OHLC, Volume
+    final target = '$_baseUrl?s=$stooqSymbol&f=snd2t2ohlcv&h&e=csv';
     final url = corsProxyUrl.isEmpty ? target : '$corsProxyUrl$target';
     try {
       final response = await _dio.get<String>(
@@ -67,20 +68,20 @@ class StooqProvider implements StockPriceProvider {
   }
 
   StockQuote? _parseCsv(String body, String symbol) {
-    // Expected CSV:
-    //   Symbol,Date,Time,Open,High,Low,Close,Volume
-    //   AAPL.US,2025-04-18,22:00:00,210.0,212.1,209.5,211.7,45123456
-    // No-data response:
-    //   Symbol,Date,Time,Open,High,Low,Close,Volume
-    //   AAPL.US,N/D,N/D,N/D,N/D,N/D,N/D,N/D
+    // Expected CSV (f=snd2t2ohlcv):
+    //   Symbol,Name,Date,Time,Open,High,Low,Close,Volume
+    //   AAPL.US,APPLE,2025-04-18,22:00:00,210.0,212.1,209.5,211.7,45123456
+    // Note: Name itself may contain commas wrapped in quotes (e.g.
+    //   "ALPHABET, INC."). Use a quote-aware splitter.
     final lines = body.trim().split(RegExp(r'\r?\n'));
     if (lines.length < 2) return null;
 
-    final header = lines.first.split(',');
+    final header = _splitCsvLine(lines.first);
     final closeIdx = header.indexWhere((h) => h.trim().toLowerCase() == 'close');
     if (closeIdx < 0) return null;
+    final nameIdx = header.indexWhere((h) => h.trim().toLowerCase() == 'name');
 
-    final row = lines[1].split(',');
+    final row = _splitCsvLine(lines[1]);
     if (row.length <= closeIdx) return null;
 
     final closeStr = row[closeIdx].trim();
@@ -89,6 +90,43 @@ class StooqProvider implements StockPriceProvider {
     final price = Decimal.tryParse(closeStr);
     if (price == null) return null;
 
-    return StockQuote(symbol: symbol, price: price, fetchedAt: DateTime.now());
+    String? name;
+    if (nameIdx >= 0 && row.length > nameIdx) {
+      final raw = row[nameIdx].trim();
+      if (raw.isNotEmpty && raw.toUpperCase() != 'N/D') {
+        name = raw;
+      }
+    }
+
+    return StockQuote(
+      symbol: symbol,
+      price: price,
+      fetchedAt: DateTime.now(),
+      name: name,
+    );
+  }
+
+  /// Splits a CSV line, treating double-quoted segments as a single field
+  /// (so commas inside `"ALPHABET, INC."` don't break parsing). Surrounding
+  /// quotes are stripped from the returned values.
+  List<String> _splitCsvLine(String line) {
+    final out = <String>[];
+    final buf = StringBuffer();
+    var inQuotes = false;
+    for (var i = 0; i < line.length; i++) {
+      final ch = line[i];
+      if (ch == '"') {
+        inQuotes = !inQuotes;
+        continue;
+      }
+      if (ch == ',' && !inQuotes) {
+        out.add(buf.toString());
+        buf.clear();
+      } else {
+        buf.write(ch);
+      }
+    }
+    out.add(buf.toString());
+    return out;
   }
 }

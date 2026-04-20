@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:decimal/decimal.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -7,9 +9,12 @@ import '../../../domain/enums/market_code.dart';
 import '../stock_price_provider.dart';
 
 class EmergingProvider implements StockPriceProvider {
-  EmergingProvider(this._dio);
+  EmergingProvider(this._dio, {this.corsProxyUrl = ''});
 
   final Dio _dio;
+
+  /// Optional CORS proxy URL prefix. Required for browser builds.
+  final String corsProxyUrl;
 
   static const _apiUrl =
       'https://www.tpex.org.tw/openapi/v1/tpex_esb_latest_statistics';
@@ -48,9 +53,18 @@ class EmergingProvider implements StockPriceProvider {
       final priceStr = map['LatestPrice'] as String?;
       if (priceStr == null || priceStr.isEmpty || priceStr == '-') continue;
 
+      final nameStr = (map['CompanyName'] as String?)?.trim();
+      final name =
+          (nameStr != null && nameStr.isNotEmpty) ? nameStr : null;
+
       final price = Decimal.tryParse(priceStr);
       if (price != null) {
-        quotes.add(StockQuote(symbol: code, price: price, fetchedAt: now));
+        quotes.add(StockQuote(
+          symbol: code,
+          price: price,
+          fetchedAt: now,
+          name: name,
+        ));
       }
     }
 
@@ -66,8 +80,15 @@ class EmergingProvider implements StockPriceProvider {
     }
 
     try {
-      final response = await _dio.get<List<dynamic>>(_apiUrl);
-      final data = response.data;
+      final url =
+          corsProxyUrl.isEmpty ? _apiUrl : '$corsProxyUrl$_apiUrl';
+      final response = await _dio.get<dynamic>(url);
+      final raw = response.data;
+      final data = raw is List<dynamic>
+          ? raw
+          : raw is String
+              ? _safeJsonDecodeList(raw)
+              : null;
       if (data != null) {
         _cachedData = data;
         _cacheTime = now;
@@ -78,6 +99,15 @@ class EmergingProvider implements StockPriceProvider {
       return null;
     } on Exception catch (e) {
       debugPrint('[EmergingProvider] Exception: $e');
+      return null;
+    }
+  }
+
+  List<dynamic>? _safeJsonDecodeList(String s) {
+    try {
+      final v = jsonDecode(s);
+      return v is List<dynamic> ? v : null;
+    } on FormatException {
       return null;
     }
   }

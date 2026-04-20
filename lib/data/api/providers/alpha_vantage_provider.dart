@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:decimal/decimal.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -14,10 +16,14 @@ import '../stock_price_provider.dart';
 ///   US stocks: pass symbol as-is (e.g. AAPL)
 ///   UK stocks: append .LON  (e.g. VWRA → VWRA.LON)
 class AlphaVantageProvider implements StockPriceProvider {
-  AlphaVantageProvider(this._dio, this._apiKey);
+  AlphaVantageProvider(this._dio, this._apiKey, {this.corsProxyUrl = ''});
 
   final Dio _dio;
   final String _apiKey;
+
+  /// Optional CORS proxy URL prefix. AlphaVantage does send CORS headers,
+  /// but we accept the parameter for symmetry with sibling providers.
+  final String corsProxyUrl;
 
   static const _baseUrl = 'https://www.alphavantage.co/query';
 
@@ -29,16 +35,17 @@ class AlphaVantageProvider implements StockPriceProvider {
   Future<StockQuote?> getQuote(String symbol, MarketCode market) async {
     final avSymbol = _formatSymbol(symbol, market);
     try {
-      final response = await _dio.get<Map<String, dynamic>>(
-        _baseUrl,
-        queryParameters: {
-          'function': 'GLOBAL_QUOTE',
-          'symbol': avSymbol,
-          'apikey': _apiKey,
-        },
-      );
-
-      final data = response.data;
+      final qs =
+          'function=GLOBAL_QUOTE&symbol=${Uri.encodeQueryComponent(avSymbol)}&apikey=${Uri.encodeQueryComponent(_apiKey)}';
+      final target = '$_baseUrl?$qs';
+      final url = corsProxyUrl.isEmpty ? target : '$corsProxyUrl$target';
+      final response = await _dio.get<dynamic>(url);
+      final raw = response.data;
+      final Map<String, dynamic>? data = raw is Map<String, dynamic>
+          ? raw
+          : raw is String
+              ? _safeJsonDecode(raw)
+              : null;
       if (data == null) return null;
 
       // Rate-limit notice: {"Note": "Thank you for using Alpha Vantage!..."}
@@ -85,5 +92,14 @@ class AlphaVantageProvider implements StockPriceProvider {
       return symbol.contains('.') ? symbol : '$symbol.LON';
     }
     return symbol;
+  }
+
+  Map<String, dynamic>? _safeJsonDecode(String s) {
+    try {
+      final v = jsonDecode(s);
+      return v is Map<String, dynamic> ? v : null;
+    } on FormatException {
+      return null;
+    }
   }
 }
