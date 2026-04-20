@@ -6,11 +6,13 @@ class StockQuote {
   final String symbol;
   final Decimal price;
   final DateTime fetchedAt;
+  final String? name;
 
   const StockQuote({
     required this.symbol,
     required this.price,
     required this.fetchedAt,
+    this.name,
   });
 }
 

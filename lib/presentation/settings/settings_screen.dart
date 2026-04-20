@@ -244,9 +244,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   TextField(
                     controller: _corsProxyController,
                     decoration: const InputDecoration(
-                      labelText: 'CORS 代理（Web 專用，選填）',
+                      labelText: 'CORS 代理（Web 專用）',
                       helperText:
-                          '若 Stooq 在瀏覽器被 CORS 阻擋，填入代理 URL，例如 https://corsproxy.io/?',
+                          '預設 https://corsproxy.io/? 讓 TWSE/TPEx/Stooq 可在瀏覽器查詢；可改為其他代理或留空走直連。',
                       border: OutlineInputBorder(),
                     ),
                     onChanged: _saveCorsProxy,

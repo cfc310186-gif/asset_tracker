@@ -60,17 +60,47 @@ class _StockListScreenState extends ConsumerState<StockListScreen> {
         final pos = result.nextPointer == 0
             ? result.queueSize
             : result.nextPointer; // current (1-based)
-        final msg = result.updated > 0
-            ? '$symbol 已更新（$pos/${result.queueSize}）→ 下次：${_nextSymbolLabel(result.nextPointer)}'
-            : '$symbol 更新失敗（$pos/${result.queueSize}）';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(msg)),
-        );
+        if (result.updated > 0) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                '$symbol 已更新（$pos/${result.queueSize}）→ 下次：${_nextSymbolLabel(result.nextPointer)}',
+              ),
+            ),
+          );
+        } else {
+          // Most common cause on Web: API origin blocks the request because no
+          // CORS proxy is configured (or the configured one is unreachable).
+          // Surface that explicitly with a one-tap shortcut to Settings.
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              duration: const Duration(seconds: 6),
+              content: Text(
+                '$symbol 更新失敗（$pos/${result.queueSize}）— 可能是網路 / CORS 限制，請至設定確認代理設定',
+              ),
+              action: SnackBarAction(
+                label: '前往設定',
+                onPressed: () {
+                  if (mounted) context.push('/settings');
+                },
+              ),
+            ),
+          );
+        }
       }
     } on Exception catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('更新失敗：$e')),
+          SnackBar(
+            duration: const Duration(seconds: 6),
+            content: Text('更新失敗：$e'),
+            action: SnackBarAction(
+              label: '前往設定',
+              onPressed: () {
+                if (mounted) context.push('/settings');
+              },
+            ),
+          ),
         );
       }
     } finally {

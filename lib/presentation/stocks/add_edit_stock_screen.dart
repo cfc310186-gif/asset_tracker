@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:decimal/decimal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -7,6 +9,7 @@ import '../../domain/enums/currency_code.dart';
 import '../../domain/enums/market_code.dart';
 import '../../domain/models/stock_holding.dart';
 import '../../domain/models/transaction.dart';
+import '../../providers/price_providers.dart';
 import '../../providers/repository_providers.dart';
 import '../../providers/usecase_providers.dart';
 
@@ -39,6 +42,16 @@ class _AddEditStockScreenState extends ConsumerState<AddEditStockScreen> {
   late bool _isMargin;
   bool _isSaving = false;
 
+  /// Debounce timer for symbol → name auto-lookup.
+  Timer? _nameLookupDebounce;
+
+  /// Token used to drop stale lookup results when the user types again
+  /// before the previous request completes.
+  int _lookupRequestId = 0;
+
+  /// True while a lookup is in flight; drives the trailing spinner.
+  bool _isLookingUpName = false;
+
   bool get _isEditing => widget.holding != null;
 
   /// True when the symbol matches the Taiwan pattern → hide market selector.
@@ -64,6 +77,7 @@ class _AddEditStockScreenState extends ConsumerState<AddEditStockScreen> {
 
   @override
   void dispose() {
+    _nameLookupDebounce?.cancel();
     _symbolCtrl.removeListener(_onSymbolChanged);
     _symbolCtrl.dispose();
     _nameCtrl.dispose();
@@ -90,6 +104,44 @@ class _AddEditStockScreenState extends ConsumerState<AddEditStockScreen> {
         _market = detected;
         _currency = _market.defaultCurrency;
       });
+    }
+    _scheduleNameLookup();
+  }
+
+  /// Debounced symbol → official-name lookup. Skipped when:
+  ///   • editing an existing holding (user already named it),
+  ///   • the symbol is too short / blank,
+  ///   • the user has typed something into the name field manually.
+  ///
+  /// The lookup is best-effort: failures are silent (price providers already
+  /// log) and never block the form.
+  void _scheduleNameLookup() {
+    _nameLookupDebounce?.cancel();
+    if (_isEditing) return;
+
+    final symbol = _symbolCtrl.text.trim().toUpperCase();
+    if (symbol.length < 2) return;
+    if (_nameCtrl.text.trim().isNotEmpty) return;
+
+    _nameLookupDebounce = Timer(const Duration(milliseconds: 600), () {
+      _lookupName(symbol, _market);
+    });
+  }
+
+  Future<void> _lookupName(String symbol, MarketCode market) async {
+    final requestId = ++_lookupRequestId;
+    if (mounted) setState(() => _isLookingUpName = true);
+    try {
+      final repo = ref.read(priceRepositoryProvider);
+      final name = await repo.lookupName(symbol, market);
+      if (!mounted || requestId != _lookupRequestId) return;
+      if (name != null && _nameCtrl.text.trim().isEmpty) {
+        _nameCtrl.text = name;
+      }
+    } finally {
+      if (mounted && requestId == _lookupRequestId) {
+        setState(() => _isLookingUpName = false);
+      }
     }
   }
 
@@ -131,9 +183,21 @@ class _AddEditStockScreenState extends ConsumerState<AddEditStockScreen> {
               const SizedBox(height: 16),
               TextFormField(
                 controller: _nameCtrl,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   labelText: '股票名稱 *',
-                  border: OutlineInputBorder(),
+                  helperText: _isEditing ? null : '輸入代號後將自動帶入名稱',
+                  suffixIcon: _isLookingUpName
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SizedBox(
+                            height: 16,
+                            width: 16,
+                            child:
+                                CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : null,
+                  border: const OutlineInputBorder(),
                 ),
                 validator: (v) =>
                     (v == null || v.trim().isEmpty) ? '請輸入股票名稱' : null,

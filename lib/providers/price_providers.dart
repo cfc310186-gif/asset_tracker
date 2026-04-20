@@ -21,15 +21,24 @@ import 'settings_providers.dart';
 final dioProvider = Provider<Dio>((ref) => Dio());
 
 final _twseProviderP = Provider(
-  (ref) => TwseProvider(ref.watch(dioProvider)),
+  (ref) => TwseProvider(
+    ref.watch(dioProvider),
+    corsProxyUrl: ref.watch(corsProxyUrlProvider).trim(),
+  ),
 );
 
 final _tpexProviderP = Provider(
-  (ref) => TpexProvider(ref.watch(dioProvider)),
+  (ref) => TpexProvider(
+    ref.watch(dioProvider),
+    corsProxyUrl: ref.watch(corsProxyUrlProvider).trim(),
+  ),
 );
 
 final _emergingProviderP = Provider(
-  (ref) => EmergingProvider(ref.watch(dioProvider)),
+  (ref) => EmergingProvider(
+    ref.watch(dioProvider),
+    corsProxyUrl: ref.watch(corsProxyUrlProvider).trim(),
+  ),
 );
 
 /// Taiwan waterfall: TWSE → TPEx → Emerging.
@@ -53,8 +62,9 @@ final priceRepositoryProvider = Provider<PriceRepository>((ref) {
 
   // Stooq is free and keyless — always available as the primary foreign source.
   final stooq = StooqProvider(dio, corsProxyUrl: corsProxy);
-  final alphaVantage =
-      avKey.isNotEmpty ? AlphaVantageProvider(dio, avKey) : null;
+  final alphaVantage = avKey.isNotEmpty
+      ? AlphaVantageProvider(dio, avKey, corsProxyUrl: corsProxy)
+      : null;
 
   final foreignProvider = ForeignWaterfallProvider(
     stooq: stooq,

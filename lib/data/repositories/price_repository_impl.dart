@@ -58,6 +58,20 @@ class PriceRepositoryImpl implements PriceRepository {
   }
 
   @override
+  Future<String?> lookupName(String symbol, MarketCode market) async {
+    final trimmed = symbol.trim();
+    if (trimmed.isEmpty) return null;
+    try {
+      final quote = await _providerFor(market).getQuote(trimmed, market);
+      final raw = quote?.name?.trim();
+      return (raw == null || raw.isEmpty) ? null : raw;
+    } on Exception catch (e) {
+      debugPrint('[PriceRepository] lookupName($trimmed, $market) failed: $e');
+      return null;
+    }
+  }
+
+  @override
   Future<void> cacheQuote(StockQuote quote, MarketCode market) async {
     final entry =
         await _stockDao.findBySymbolAndMarket(quote.symbol, market.name);

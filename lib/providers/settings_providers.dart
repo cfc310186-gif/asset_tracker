@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -25,9 +26,21 @@ final refreshQueuePointerProvider = StateProvider<int>((ref) => 0);
 /// Theme mode. Defaults to system; persisted in SharedPreferences.
 final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.system);
 
-/// Optional CORS proxy URL prepended to Stooq requests on Flutter Web.
-/// Empty string means direct call.
-final corsProxyUrlProvider = StateProvider<String>((ref) => '');
+/// Optional CORS proxy URL prepended to all stock-quote HTTP requests.
+/// Required on Flutter Web because TWSE / TPEx / Stooq do not send CORS
+/// headers. Empty string = direct call (works on native; works on web only
+/// when the API origin happens to be permissive).
+///
+/// Default value: see [defaultCorsProxyUrl] — `https://corsproxy.io/?` on web,
+/// empty on native. Users can override in Settings.
+final corsProxyUrlProvider =
+    StateProvider<String>((ref) => defaultCorsProxyUrl);
+
+/// Public default for the CORS proxy. On Flutter Web the app cannot reach
+/// TWSE / TPEx / Stooq without one, so we ship a reasonable free default
+/// that the user can replace from the Settings screen.
+const String defaultCorsProxyUrl =
+    kIsWeb ? 'https://corsproxy.io/?' : '';
 
 Future<void> saveThemeMode(SharedPreferences prefs, ThemeMode mode) async {
   await prefs.setString(AppConstants.prefThemeMode, mode.name);
@@ -47,7 +60,7 @@ Future<void> saveCorsProxyUrl(SharedPreferences prefs, String url) async {
 }
 
 String loadCorsProxyUrl(SharedPreferences prefs) {
-  return prefs.getString(AppConstants.prefCorsProxy) ?? '';
+  return prefs.getString(AppConstants.prefCorsProxy) ?? defaultCorsProxyUrl;
 }
 
 /// Persists the selected [CurrencyCode] to SharedPreferences.

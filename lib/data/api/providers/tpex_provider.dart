@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:decimal/decimal.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -7,9 +9,13 @@ import '../../../domain/enums/market_code.dart';
 import '../stock_price_provider.dart';
 
 class TpexProvider implements StockPriceProvider {
-  TpexProvider(this._dio);
+  TpexProvider(this._dio, {this.corsProxyUrl = ''});
 
   final Dio _dio;
+
+  /// Optional CORS proxy URL prefix. Required for browser builds because
+  /// www.tpex.org.tw does not send permissive CORS headers.
+  final String corsProxyUrl;
 
   static const _apiUrl =
       'https://www.tpex.org.tw/openapi/v1/tpex_mainboard_quotes';
@@ -48,9 +54,18 @@ class TpexProvider implements StockPriceProvider {
       final closeStr = map['Close'] as String?;
       if (closeStr == null || closeStr.isEmpty || closeStr == '-') continue;
 
+      final nameStr = (map['CompanyName'] as String?)?.trim();
+      final name =
+          (nameStr != null && nameStr.isNotEmpty) ? nameStr : null;
+
       final price = Decimal.tryParse(closeStr);
       if (price != null) {
-        quotes.add(StockQuote(symbol: code, price: price, fetchedAt: now));
+        quotes.add(StockQuote(
+          symbol: code,
+          price: price,
+          fetchedAt: now,
+          name: name,
+        ));
       }
     }
 
@@ -66,8 +81,15 @@ class TpexProvider implements StockPriceProvider {
     }
 
     try {
-      final response = await _dio.get<List<dynamic>>(_apiUrl);
-      final data = response.data;
+      final url =
+          corsProxyUrl.isEmpty ? _apiUrl : '$corsProxyUrl$_apiUrl';
+      final response = await _dio.get<dynamic>(url);
+      final raw = response.data;
+      final data = raw is List<dynamic>
+          ? raw
+          : raw is String
+              ? _safeJsonDecodeList(raw)
+              : null;
       if (data != null) {
         _cachedData = data;
         _cacheTime = now;
@@ -78,6 +100,15 @@ class TpexProvider implements StockPriceProvider {
       return null;
     } on Exception catch (e) {
       debugPrint('[TpexProvider] Exception: $e');
+      return null;
+    }
+  }
+
+  List<dynamic>? _safeJsonDecodeList(String s) {
+    try {
+      final v = jsonDecode(s);
+      return v is List<dynamic> ? v : null;
+    } on FormatException {
       return null;
     }
   }
