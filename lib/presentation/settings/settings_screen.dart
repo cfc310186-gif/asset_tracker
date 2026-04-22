@@ -108,9 +108,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _statusMessage = null;
     });
     try {
-      await ref.read(refreshStockPricesProvider).execute();
+      final result =
+          await ref.read(refreshStockPricesProvider).executeAll();
       if (mounted) {
-        setState(() => _statusMessage = '股價更新完成');
+        final msg = result.queueSize == 0
+            ? '尚無股票可更新'
+            : result.failed == 0
+                ? '股價更新完成（${result.updated}/${result.queueSize}）'
+                : '已更新 ${result.updated}/${result.queueSize}，'
+                    '${result.failed} 檔失敗：${result.failedSymbols.join("、")}';
+        setState(() => _statusMessage = msg);
       }
     } on Exception catch (e) {
       if (mounted) {

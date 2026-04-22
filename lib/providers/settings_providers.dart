@@ -19,10 +19,6 @@ final displayCurrencyProvider = StateProvider<CurrencyCode>((ref) {
 /// Empty string means no key — prices stay null for foreign stocks.
 final alphaVantageKeyProvider = StateProvider<String>((ref) => '');
 
-/// Circular FIFO pointer for stock price refresh queue.
-/// Populated from SharedPreferences by StockListScreen on load.
-final refreshQueuePointerProvider = StateProvider<int>((ref) => 0);
-
 /// Theme mode. Defaults to system; persisted in SharedPreferences.
 final themeModeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.system);
 

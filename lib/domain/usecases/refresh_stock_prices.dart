@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../models/stock_holding.dart';
 import '../repositories/price_repository.dart';
 import '../repositories/stock_repository.dart';
 
@@ -7,29 +8,24 @@ class RefreshResult {
   const RefreshResult({
     required this.updated,
     required this.failed,
-    required this.nextPointer,
     required this.queueSize,
-    this.updatedSymbol,
+    this.failedSymbols = const [],
   });
 
   final int updated;
   final int failed;
 
-  /// Index that should be used on the NEXT refresh call.
-  final int nextPointer;
-
-  /// Total number of stocks in the queue.
+  /// Total number of stocks that were attempted.
   final int queueSize;
 
-  /// Symbol of the stock that was attempted this cycle (null if queue empty).
-  final String? updatedSymbol;
+  /// Symbols whose price fetch failed.
+  final List<String> failedSymbols;
 }
 
-/// Refreshes one stock per call in a circular FIFO order.
+/// Refreshes stock prices in a stable FIFO order (oldest [createdAt] first).
 ///
-/// Holdings are sorted by [createdAt] for a stable queue. On each call the
-/// stock at [pointer % queueSize] is fetched; the returned [RefreshResult]
-/// carries [nextPointer] which the caller must persist and pass back next time.
+/// * [executeAll]    — fetch every holding sequentially, in FIFO order.
+/// * [executeSingle] — fetch a single holding (per-tile refresh action).
 class RefreshStockPrices {
   const RefreshStockPrices({
     required StockRepository stockRepo,
@@ -40,65 +36,69 @@ class RefreshStockPrices {
   final StockRepository _stockRepo;
   final PriceRepository _priceRepo;
 
-  Future<RefreshResult> execute({int pointer = 0}) async {
+  /// Refresh every holding in a single pass, ordered by [createdAt] (FIFO).
+  /// Requests run sequentially so providers with per-request rate limits
+  /// (notably Alpha Vantage free-tier) stay happy.
+  Future<RefreshResult> executeAll() async {
     final holdings = await _stockRepo.getAll();
     if (holdings.isEmpty) {
-      return const RefreshResult(
-        updated: 0,
-        failed: 0,
-        nextPointer: 0,
-        queueSize: 0,
-      );
+      return const RefreshResult(updated: 0, failed: 0, queueSize: 0);
     }
 
-    // Stable queue order: oldest first.
     final sorted = [...holdings]
       ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
-    final idx = pointer % sorted.length;
-    final target = sorted[idx];
-    final nextPointer = (idx + 1) % sorted.length;
+    var updated = 0;
+    final failed = <String>[];
+    for (var i = 0; i < sorted.length; i++) {
+      final h = sorted[i];
+      debugPrint(
+        '[RefreshStockPrices] Updating ${h.symbol} (${i + 1}/${sorted.length})',
+      );
+      final ok = await _fetchAndSave(h);
+      if (ok) {
+        updated++;
+      } else {
+        failed.add(h.symbol);
+      }
+    }
 
-    debugPrint(
-      '[RefreshStockPrices] Updating ${target.symbol} '
-      '(${idx + 1}/${sorted.length})',
+    return RefreshResult(
+      updated: updated,
+      failed: failed.length,
+      queueSize: sorted.length,
+      failedSymbols: List.unmodifiable(failed),
     );
+  }
 
+  /// Refresh a single holding. Used by the per-stock refresh action.
+  Future<RefreshResult> executeSingle(StockHolding holding) async {
+    debugPrint('[RefreshStockPrices] Updating single ${holding.symbol}');
+    final ok = await _fetchAndSave(holding);
+    return RefreshResult(
+      updated: ok ? 1 : 0,
+      failed: ok ? 0 : 1,
+      queueSize: 1,
+      failedSymbols: ok ? const [] : [holding.symbol],
+    );
+  }
+
+  /// Returns true when a non-null quote was fetched and persisted.
+  Future<bool> _fetchAndSave(StockHolding target) async {
     try {
       final quote = await _priceRepo.getQuote(target.symbol, target.market);
+      if (quote == null) return false;
 
-      if (quote != null) {
-        await _stockRepo.save(
-          target.copyWith(
-            latestPrice: quote.price,
-            priceUpdatedAt: quote.fetchedAt,
-          ),
-        );
-        return RefreshResult(
-          updated: 1,
-          failed: 0,
-          nextPointer: nextPointer,
-          queueSize: sorted.length,
-          updatedSymbol: target.symbol,
-        );
-      } else {
-        return RefreshResult(
-          updated: 0,
-          failed: 1,
-          nextPointer: nextPointer,
-          queueSize: sorted.length,
-          updatedSymbol: target.symbol,
-        );
-      }
+      await _stockRepo.save(
+        target.copyWith(
+          latestPrice: quote.price,
+          priceUpdatedAt: quote.fetchedAt,
+        ),
+      );
+      return true;
     } on Exception catch (e) {
       debugPrint('[RefreshStockPrices] Error updating ${target.symbol}: $e');
-      return RefreshResult(
-        updated: 0,
-        failed: 1,
-        nextPointer: nextPointer,
-        queueSize: sorted.length,
-        updatedSymbol: target.symbol,
-      );
+      return false;
     }
   }
 }
