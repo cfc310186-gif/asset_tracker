@@ -105,9 +105,8 @@ class RealEstateListScreen extends ConsumerWidget {
     if (confirmed == true && context.mounted) {
       try {
         await ref.read(realEstateRepositoryProvider).delete(asset.id);
-        await ref
-            .read(syncLinkedLoansProvider)
-            .onRealEstateDeleted(asset);
+        await ref.read(syncLinkedLoansProvider).onRealEstateDeleted(asset);
+        await notifyPortfolioChanged(ref);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('不動產已刪除')),

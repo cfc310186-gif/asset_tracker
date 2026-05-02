@@ -27,6 +27,9 @@ class _StockListScreenState extends ConsumerState<StockListScreen> {
     setState(() => _isRefreshing = true);
     try {
       final result = await ref.read(refreshStockPricesProvider).executeAll();
+      if (result.updated > 0) {
+        await notifyPortfolioChanged(ref);
+      }
 
       if (!mounted) return;
       if (result.queueSize == 0) {
@@ -81,9 +84,11 @@ class _StockListScreenState extends ConsumerState<StockListScreen> {
     if (_refreshingIds.contains(holding.id)) return;
     setState(() => _refreshingIds.add(holding.id));
     try {
-      final result = await ref
-          .read(refreshStockPricesProvider)
-          .executeSingle(holding);
+      final result =
+          await ref.read(refreshStockPricesProvider).executeSingle(holding);
+      if (result.updated > 0) {
+        await notifyPortfolioChanged(ref);
+      }
 
       if (!mounted) return;
       if (result.updated > 0) {
@@ -261,9 +266,8 @@ class _StockListScreenState extends ConsumerState<StockListScreen> {
     if (confirmed == true && context.mounted) {
       try {
         await ref.read(stockRepositoryProvider).delete(holding.id);
-        await ref
-            .read(syncLinkedLoansProvider)
-            .onStockDeleted(holding);
+        await ref.read(syncLinkedLoansProvider).onStockDeleted(holding);
+        await notifyPortfolioChanged(ref);
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('股票已刪除')),
@@ -368,9 +372,8 @@ class _StockTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final unrealizedGain = holding.unrealizedGain;
     final hasPrice = holding.latestPrice != null;
-    final gainColor = unrealizedGain.sign >= 0
-        ? AppTheme.gainColor
-        : AppTheme.lossColor;
+    final gainColor =
+        unrealizedGain.sign >= 0 ? AppTheme.gainColor : AppTheme.lossColor;
 
     return Dismissible(
       key: Key(holding.id),

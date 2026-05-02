@@ -6,6 +6,7 @@ import '../../core/utils/currency_formatter.dart';
 import '../../domain/enums/loan_type.dart';
 import '../../domain/models/loan.dart';
 import '../../providers/repository_providers.dart';
+import '../../providers/usecase_providers.dart';
 
 class LoanListScreen extends ConsumerWidget {
   const LoanListScreen({super.key});
@@ -68,10 +69,8 @@ class LoanListScreen extends ConsumerWidget {
                   ...grouped[type]!.map(
                     (loan) => _LoanTile(
                       loan: loan,
-                      onTap: () =>
-                          context.push('/loans/edit', extra: loan),
-                      onDelete: () =>
-                          _confirmDelete(context, ref, loan),
+                      onTap: () => context.push('/loans/edit', extra: loan),
+                      onDelete: () => _confirmDelete(context, ref, loan),
                     ),
                   ),
                 ],
@@ -109,6 +108,7 @@ class LoanListScreen extends ConsumerWidget {
     if (confirmed == true && context.mounted) {
       try {
         await ref.read(loanRepositoryProvider).delete(loan.id);
+        await notifyPortfolioChanged(ref);
         if (context.mounted) {
           ScaffoldMessenger.of(context)
               .showSnackBar(const SnackBar(content: Text('貸款已刪除')));
@@ -190,8 +190,7 @@ class _LoanTile extends StatelessWidget {
           children: [
             Expanded(child: Text(loan.name)),
             Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
                 color: typeColor.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
@@ -215,13 +214,10 @@ class _LoanTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              CurrencyFormatter.format(
-                  loan.remainingBalance, loan.currency),
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 15),
+              CurrencyFormatter.format(loan.remainingBalance, loan.currency),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
             ),
-            Text('剩餘',
-                style: Theme.of(context).textTheme.bodySmall),
+            Text('剩餘', style: Theme.of(context).textTheme.bodySmall),
           ],
         ),
       ),

@@ -19,60 +19,63 @@ class NetWorthCard extends StatelessWidget {
 
     return Semantics(
       identifier: 'net-worth-card',
-      label: '總淨資產',
+      label:
+          '總淨資產 ${CurrencyFormatter.format(netWorth, summary.displayCurrency)} '
+          '總資產 ${CurrencyFormatter.format(summary.totalAssets, summary.displayCurrency)} '
+          '總負債 ${CurrencyFormatter.format(summary.totalLoanBalance, summary.displayCurrency)}',
       container: true,
       child: Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '總淨資產',
-              style: theme.textTheme.labelLarge?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              CurrencyFormatter.format(netWorth, summary.displayCurrency),
-              style: theme.textTheme.displaySmall?.copyWith(
-                color: netWorthColor,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Divider(height: 1),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _SummaryItem(
-                    label: '總資產',
-                    amount: CurrencyFormatter.format(
-                      summary.totalAssets,
-                      summary.displayCurrency,
-                    ),
-                    color: AppTheme.gainColor,
-                  ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '總淨資產',
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
-                Container(width: 1, height: 32, color: Colors.grey.shade200),
-                Expanded(
-                  child: _SummaryItem(
-                    label: '總負債',
-                    amount: CurrencyFormatter.format(
-                      summary.totalLoanBalance,
-                      summary.displayCurrency,
-                    ),
-                    color: AppTheme.lossColor,
-                  ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                CurrencyFormatter.format(netWorth, summary.displayCurrency),
+                style: theme.textTheme.displaySmall?.copyWith(
+                  color: netWorthColor,
+                  fontWeight: FontWeight.w700,
                 ),
-              ],
-            ),
-          ],
+              ),
+              const SizedBox(height: 16),
+              const Divider(height: 1),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _SummaryItem(
+                      label: '總資產',
+                      amount: CurrencyFormatter.format(
+                        summary.totalAssets,
+                        summary.displayCurrency,
+                      ),
+                      color: AppTheme.gainColor,
+                    ),
+                  ),
+                  Container(width: 1, height: 32, color: Colors.grey.shade200),
+                  Expanded(
+                    child: _SummaryItem(
+                      label: '總負債',
+                      amount: CurrencyFormatter.format(
+                        summary.totalLoanBalance,
+                        summary.displayCurrency,
+                      ),
+                      color: AppTheme.lossColor,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 }

@@ -10,15 +10,13 @@ class NetWorthSnapshotDao extends DatabaseAccessor<AppDatabase>
     with _$NetWorthSnapshotDaoMixin {
   NetWorthSnapshotDao(super.db);
 
-  Future<List<NetWorthSnapshotEntry>> getAll() =>
-      (select(netWorthSnapshots)
-            ..orderBy([(t) => OrderingTerm.asc(t.capturedAt)]))
-          .get();
+  Future<List<NetWorthSnapshotEntry>> getAll() => (select(netWorthSnapshots)
+        ..orderBy([(t) => OrderingTerm.asc(t.capturedAt)]))
+      .get();
 
-  Stream<List<NetWorthSnapshotEntry>> watchAll() =>
-      (select(netWorthSnapshots)
-            ..orderBy([(t) => OrderingTerm.asc(t.capturedAt)]))
-          .watch();
+  Stream<List<NetWorthSnapshotEntry>> watchAll() => (select(netWorthSnapshots)
+        ..orderBy([(t) => OrderingTerm.asc(t.capturedAt)]))
+      .watch();
 
   Stream<List<NetWorthSnapshotEntry>> watchByCurrency(String currency) =>
       (select(netWorthSnapshots)
@@ -37,7 +35,18 @@ class NetWorthSnapshotDao extends DatabaseAccessor<AppDatabase>
 
   /// Upsert by (capturedAt, displayCurrency).
   Future<void> upsert(NetWorthSnapshotsCompanion entry) async {
-    await into(netWorthSnapshots).insertOnConflictUpdate(entry);
+    final existing = await findByDayAndCurrency(
+      entry.capturedAt.value,
+      entry.displayCurrency.value,
+    );
+
+    if (existing == null) {
+      await into(netWorthSnapshots).insert(entry);
+      return;
+    }
+
+    await (update(netWorthSnapshots)..where((t) => t.id.equals(existing.id)))
+        .write(entry.copyWith(id: Value(existing.id)));
   }
 
   Future<int> deleteAll() => delete(netWorthSnapshots).go();

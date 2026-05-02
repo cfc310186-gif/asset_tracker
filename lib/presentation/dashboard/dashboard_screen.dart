@@ -29,7 +29,8 @@ class DashboardScreen extends ConsumerWidget {
 }
 
 class _ErrorView extends StatelessWidget {
-  const _ErrorView({required this.error, required this.stack, required this.ref});
+  const _ErrorView(
+      {required this.error, required this.stack, required this.ref});
   final Object error;
   final StackTrace stack;
   final WidgetRef ref;
@@ -124,8 +125,7 @@ class _DashboardBody extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('資產類別',
-                      style: Theme.of(context).textTheme.titleLarge),
+                  Text('資產類別', style: Theme.of(context).textTheme.titleLarge),
                   const SizedBox(height: 12),
                   categories,
                 ],
@@ -260,6 +260,7 @@ class _CategoryGrid extends StatelessWidget {
 
 final _netWorthProvider = FutureProvider<NetWorthSummary>((ref) {
   final currency = ref.watch(displayCurrencyProvider);
+  ref.watch(portfolioRevisionProvider);
   return ref.watch(calculateNetWorthProvider).execute(
         displayCurrency: currency,
       );

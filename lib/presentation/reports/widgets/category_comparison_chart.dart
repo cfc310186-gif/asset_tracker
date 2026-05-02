@@ -1,13 +1,21 @@
+import 'package:decimal/decimal.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/utils/currency_formatter.dart';
+import '../../../domain/enums/currency_code.dart';
 import '../../../domain/usecases/build_category_comparison.dart';
 
 class CategoryComparisonChart extends StatelessWidget {
-  const CategoryComparisonChart({super.key, required this.rows});
+  const CategoryComparisonChart({
+    super.key,
+    required this.rows,
+    required this.currency,
+  });
 
   final List<CategoryComparisonRow> rows;
+  final CurrencyCode currency;
 
   static const _categoryKeys = ['stock', 'real_estate', 'cash', 'loan'];
   static const _categoryLabels = {
@@ -45,79 +53,92 @@ class CategoryComparisonChart extends StatelessWidget {
         .expand((r) => _categoryKeys.map((k) => r.values[k]?.toDouble() ?? 0))
         .fold<double>(0, (a, b) => b > a ? b : a);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          height: 280,
-          child: BarChart(
-            BarChartData(
-              maxY: (maxValue * 1.15).clamp(1, double.infinity),
-              alignment: BarChartAlignment.spaceAround,
-              barTouchData: BarTouchData(enabled: true),
-              titlesData: FlTitlesData(
-                rightTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
-                ),
-                topTitles: const AxisTitles(
-                  sideTitles: SideTitles(showTitles: false),
-                ),
-                bottomTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 32,
-                    getTitlesWidget: (value, meta) {
-                      final idx = value.toInt();
-                      if (idx < 0 || idx >= rows.length) {
-                        return const SizedBox.shrink();
-                      }
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 4),
+    return Semantics(
+      identifier: 'report-category-summary',
+      label: _summaryLabel(rows.last),
+      container: true,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            height: 280,
+            child: BarChart(
+              BarChartData(
+                maxY: (maxValue * 1.15).clamp(1, double.infinity),
+                alignment: BarChartAlignment.spaceAround,
+                barTouchData: BarTouchData(enabled: true),
+                titlesData: FlTitlesData(
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 32,
+                      getTitlesWidget: (value, meta) {
+                        final idx = value.toInt();
+                        if (idx < 0 || idx >= rows.length) {
+                          return const SizedBox.shrink();
+                        }
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            DateFormat('yy/MM').format(rows[idx].period),
+                            style: theme.textTheme.labelSmall,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 56,
+                      getTitlesWidget: (value, meta) => Padding(
+                        padding: const EdgeInsets.only(right: 4),
                         child: Text(
-                          DateFormat('yy/MM').format(rows[idx].period),
+                          _short(value),
                           style: theme.textTheme.labelSmall,
                         ),
-                      );
-                    },
-                  ),
-                ),
-                leftTitles: AxisTitles(
-                  sideTitles: SideTitles(
-                    showTitles: true,
-                    reservedSize: 56,
-                    getTitlesWidget: (value, meta) => Padding(
-                      padding: const EdgeInsets.only(right: 4),
-                      child: Text(
-                        _short(value),
-                        style: theme.textTheme.labelSmall,
                       ),
                     ),
                   ),
                 ),
+                gridData: const FlGridData(show: true, drawVerticalLine: false),
+                borderData: FlBorderData(show: false),
+                barGroups: [
+                  for (var i = 0; i < rows.length; i++) _buildGroup(i, rows[i]),
+                ],
               ),
-              gridData: const FlGridData(show: true, drawVerticalLine: false),
-              borderData: FlBorderData(show: false),
-              barGroups: [
-                for (var i = 0; i < rows.length; i++) _buildGroup(i, rows[i]),
-              ],
             ),
           ),
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 16,
-          runSpacing: 8,
-          children: _categoryKeys
-              .map(
-                (k) => _LegendDot(
-                  color: _categoryColors[k]!,
-                  label: _categoryLabels[k]!,
-                ),
-              )
-              .toList(),
-        ),
-      ],
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 16,
+            runSpacing: 8,
+            children: _categoryKeys
+                .map(
+                  (k) => _LegendDot(
+                    color: _categoryColors[k]!,
+                    label: _categoryLabels[k]!,
+                  ),
+                )
+                .toList(),
+          ),
+        ],
+      ),
     );
+  }
+
+  String _summaryLabel(CategoryComparisonRow row) {
+    final parts = _categoryKeys.map((key) {
+      final value = row.values[key] ?? Decimal.zero;
+      return '${_categoryLabels[key]} ${CurrencyFormatter.format(value, currency)}';
+    });
+    return '最新類別比較 ${parts.join(' ')}';
   }
 
   BarChartGroupData _buildGroup(int x, CategoryComparisonRow row) {

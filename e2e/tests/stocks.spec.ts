@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test'
+import { Locator, Page, test, expect } from '@playwright/test'
 import { StocksPage } from '../pages/StocksPage'
 import { BasePage } from '../pages/BasePage'
 
@@ -19,54 +19,48 @@ test.describe('Stocks — CRUD', () => {
     const stocks = new StocksPage(page)
 
     // Open add screen
-    await page.getByRole('button', { name: /add/i }).click()
-    await expect(page).toHaveURL(/stocks\/add/)
+    await stocks.addButton.click()
+    await expect(stocks.symbolField).toBeVisible()
 
     // Fill symbol and name
-    await stocks.symbolField.fill('2330')
-    await stocks.nameField.fill('台積電')
-    await stocks.quantityField.fill('1000')
-    await stocks.avgCostField.fill('600')
+    await fillFlutterTextBox(page, stocks.symbolField, '2330')
+    await fillFlutterTextBox(page, stocks.nameField, '台積電')
+    await fillFlutterTextBox(page, stocks.quantityField, '1000')
+    await fillFlutterTextBox(page, stocks.avgCostField, '600')
 
-    // Market should default to TWSE — verify the dropdown shows 上市
-    await expect(page.getByText('上市').first()).toBeVisible()
+    // Taiwan numeric symbols are auto-detected.
+    await expect(page.getByText(/市場：台股/).first()).toBeVisible()
 
     await page.screenshot({ path: 'artifacts/stock-add-twse.png' })
     await stocks.saveButton.click()
 
     // Back to list
-    await expect(page).toHaveURL(/\/stocks$/)
-    await expect(page.getByText('帳戶已新增').or(page.getByText('股票已新增'))).toBeVisible({
-      timeout: 5000,
-    })
+    await expect(
+      page.getByText('帳戶已新增').or(page.getByText('股票已新增')).first(),
+    ).toBeVisible({ timeout: 5000 })
     await expect(stocks.stockTile('2330')).toBeVisible()
 
     await page.screenshot({ path: 'artifacts/stock-after-add.png' })
   })
 
-  test('can add a TPEx listed stock (上櫃)', async ({ page }) => {
+  test('can add another Taiwan numeric stock', async ({ page }) => {
     const stocks = new StocksPage(page)
 
-    await page.getByRole('button', { name: /add/i }).click()
-    await expect(page).toHaveURL(/stocks\/add/)
+    await stocks.addButton.click()
+    await expect(stocks.symbolField).toBeVisible()
 
-    await stocks.symbolField.fill('6547')
-    await stocks.nameField.fill('高端疫苗')
-    await stocks.quantityField.fill('500')
-    await stocks.avgCostField.fill('100')
-
-    // Change market to 上櫃
-    await page.getByText('上市').click()
-    await page.getByText('上櫃').click()
-
+    await fillFlutterTextBox(page, stocks.symbolField, '6547')
+    await fillFlutterTextBox(page, stocks.nameField, '高端疫苗')
+    await fillFlutterTextBox(page, stocks.quantityField, '500')
+    await fillFlutterTextBox(page, stocks.avgCostField, '100')
     await stocks.saveButton.click()
-    await expect(page).toHaveURL(/\/stocks$/)
+    await expect(stocks.stockTile('6547')).toBeVisible({ timeout: 10000 })
   })
 
   test('validates required fields on add form', async ({ page }) => {
     const stocks = new StocksPage(page)
 
-    await page.getByRole('button', { name: /add/i }).click()
+    await stocks.addButton.click()
     await stocks.saveButton.click()
 
     // Stock form validations
@@ -74,11 +68,20 @@ test.describe('Stocks — CRUD', () => {
   })
 
   test('refresh button is visible and clickable', async ({ page }) => {
-    await expect(page.getByRole('button', { name: /更新股價|refresh/i })).toBeVisible()
+    await expect(new StocksPage(page).refreshButton).toBeVisible()
     // Click refresh (will likely fail in test environment since real APIs aren't available)
     // Just verify it doesn't crash
-    await page.getByRole('button', { name: /更新股價|refresh/i }).click()
+    await new StocksPage(page).refreshButton.click()
     await page.waitForTimeout(1000)
     await page.screenshot({ path: 'artifacts/stocks-after-refresh.png' })
   })
 })
+
+async function fillFlutterTextBox(page: Page, locator: Locator, value: string) {
+  await locator.click()
+  await page.keyboard.press(
+    process.platform === 'darwin' ? 'Meta+A' : 'Control+A',
+  )
+  await page.keyboard.press('Backspace')
+  await page.keyboard.insertText(value)
+}

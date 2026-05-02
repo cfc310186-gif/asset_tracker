@@ -6,6 +6,7 @@ import '../../core/utils/currency_formatter.dart';
 import '../../domain/enums/currency_code.dart';
 import '../../domain/models/cash_account.dart';
 import '../../providers/repository_providers.dart';
+import '../../providers/usecase_providers.dart';
 
 class CashListScreen extends ConsumerWidget {
   const CashListScreen({super.key});
@@ -73,8 +74,7 @@ class CashListScreen extends ConsumerWidget {
                     final account = accounts[index];
                     return _CashAccountTile(
                       account: account,
-                      onTap: () =>
-                          context.push('/cash/edit', extra: account),
+                      onTap: () => context.push('/cash/edit', extra: account),
                       onDelete: () => _confirmDelete(context, ref, account),
                     );
                   },
@@ -114,6 +114,7 @@ class CashListScreen extends ConsumerWidget {
     if (confirmed == true && context.mounted) {
       try {
         await ref.read(cashRepositoryProvider).delete(account.id);
+        await notifyPortfolioChanged(ref);
         if (context.mounted) {
           ScaffoldMessenger.of(context)
               .showSnackBar(const SnackBar(content: Text('帳戶已刪除')));
@@ -138,8 +139,7 @@ class _TotalBalanceHeader extends StatelessWidget {
     // Group balances by currency
     final totals = <CurrencyCode, double>{};
     for (final a in accounts) {
-      totals[a.currency] =
-          (totals[a.currency] ?? 0) + a.balance.toDouble();
+      totals[a.currency] = (totals[a.currency] ?? 0) + a.balance.toDouble();
     }
 
     return Container(
@@ -230,8 +230,7 @@ class _CashAccountTile extends StatelessWidget {
           children: [
             Text(
               CurrencyFormatter.format(account.balance, account.currency),
-              style: const TextStyle(
-                  fontWeight: FontWeight.bold, fontSize: 16),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
             Text(
               account.currency.displayName,

@@ -137,7 +137,7 @@ class _AddEditCashScreenState extends ConsumerState<AddEditCashScreen> {
               ],
               const SizedBox(height: 16),
               DropdownButtonFormField<CurrencyCode>(
-                value: _selectedCurrency,
+                initialValue: _selectedCurrency,
                 decoration: const InputDecoration(
                   labelText: '幣別',
                   border: OutlineInputBorder(),
@@ -242,6 +242,8 @@ class _AddEditCashScreenState extends ConsumerState<AddEditCashScreen> {
               currency: account.currency,
             );
       }
+
+      await notifyPortfolioChanged(ref);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

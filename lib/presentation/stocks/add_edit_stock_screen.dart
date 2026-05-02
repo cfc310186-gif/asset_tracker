@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../core/utils/currency_formatter.dart';
 import '../../domain/enums/currency_code.dart';
 import '../../domain/enums/market_code.dart';
 import '../../domain/models/stock_holding.dart';
@@ -24,8 +25,7 @@ class AddEditStockScreen extends ConsumerStatefulWidget {
   final StockHolding? holding;
 
   @override
-  ConsumerState<AddEditStockScreen> createState() =>
-      _AddEditStockScreenState();
+  ConsumerState<AddEditStockScreen> createState() => _AddEditStockScreenState();
 }
 
 class _AddEditStockScreenState extends ConsumerState<AddEditStockScreen> {
@@ -35,7 +35,6 @@ class _AddEditStockScreenState extends ConsumerState<AddEditStockScreen> {
   late final TextEditingController _nameCtrl;
   late final TextEditingController _quantityCtrl;
   late final TextEditingController _avgCostCtrl;
-  late final TextEditingController _marginAmountCtrl;
 
   late MarketCode _market;
   late CurrencyCode _currency;
@@ -65,25 +64,25 @@ class _AddEditStockScreenState extends ConsumerState<AddEditStockScreen> {
     _nameCtrl = TextEditingController(text: h?.name ?? '');
     _quantityCtrl = TextEditingController(text: h?.quantity.toString() ?? '');
     _avgCostCtrl = TextEditingController(text: h?.avgCost.toString() ?? '');
-    _marginAmountCtrl = TextEditingController(
-      text: h?.marginAmount?.toString() ?? '',
-    );
     _market = h?.market ?? _detectMarket(_symbolCtrl.text);
     _currency = _market.defaultCurrency;
     _isMargin = h?.isMargin ?? false;
 
     _symbolCtrl.addListener(_onSymbolChanged);
+    _quantityCtrl.addListener(_onCostInputChanged);
+    _avgCostCtrl.addListener(_onCostInputChanged);
   }
 
   @override
   void dispose() {
     _nameLookupDebounce?.cancel();
     _symbolCtrl.removeListener(_onSymbolChanged);
+    _quantityCtrl.removeListener(_onCostInputChanged);
+    _avgCostCtrl.removeListener(_onCostInputChanged);
     _symbolCtrl.dispose();
     _nameCtrl.dispose();
     _quantityCtrl.dispose();
     _avgCostCtrl.dispose();
-    _marginAmountCtrl.dispose();
     super.dispose();
   }
 
@@ -106,6 +105,32 @@ class _AddEditStockScreenState extends ConsumerState<AddEditStockScreen> {
       });
     }
     _scheduleNameLookup();
+  }
+
+  void _onCostInputChanged() {
+    if (_isMargin && mounted) setState(() {});
+  }
+
+  Decimal? get _calculatedMarginAmount {
+    final quantity = int.tryParse(_quantityCtrl.text.trim());
+    if (quantity == null || quantity <= 0) return null;
+
+    try {
+      final avgCost = Decimal.parse(_avgCostCtrl.text.trim());
+      if (avgCost <= Decimal.zero) return null;
+      return _calculateMarginAmount(quantity: quantity, avgCost: avgCost);
+    } on FormatException {
+      return null;
+    }
+  }
+
+  Decimal _calculateMarginAmount({
+    required int quantity,
+    required Decimal avgCost,
+  }) {
+    final totalCost = avgCost * Decimal.fromInt(quantity);
+    return (totalCost * Decimal.fromInt(6) / Decimal.fromInt(10))
+        .toDecimal(scaleOnInfinitePrecision: 2);
   }
 
   /// Debounced symbol → official-name lookup. Skipped when:
@@ -192,8 +217,7 @@ class _AddEditStockScreenState extends ConsumerState<AddEditStockScreen> {
                           child: SizedBox(
                             height: 16,
                             width: 16,
-                            child:
-                                CircularProgressIndicator(strokeWidth: 2),
+                            child: CircularProgressIndicator(strokeWidth: 2),
                           ),
                         )
                       : null,
@@ -249,7 +273,8 @@ class _AddEditStockScreenState extends ConsumerState<AddEditStockScreen> {
               const SizedBox(height: 16),
               _MarginSection(
                 isMargin: _isMargin,
-                marginAmountCtrl: _marginAmountCtrl,
+                marginAmount: _calculatedMarginAmount,
+                currency: _currency,
                 onToggle: (v) => setState(() => _isMargin = v),
               ),
               const SizedBox(height: 32),
@@ -297,25 +322,25 @@ class _AddEditStockScreenState extends ConsumerState<AddEditStockScreen> {
       final now = DateTime.now();
       final existing = widget.holding;
       final id = existing?.id ?? const Uuid().v4();
+      final quantity = int.parse(_quantityCtrl.text.trim());
+      final avgCost = Decimal.parse(_avgCostCtrl.text.trim());
 
       final wasMargin = existing?.isMargin ?? false;
       final hadLinkedLoan = existing?.linkedLoanId != null;
       final needsNewLoan = _isMargin && (!wasMargin || !hadLinkedLoan);
 
       String? linkedLoanId = existing?.linkedLoanId;
-
-      Decimal? marginAmount;
-      if (_isMargin && _marginAmountCtrl.text.trim().isNotEmpty) {
-        marginAmount = Decimal.parse(_marginAmountCtrl.text.trim());
-      }
+      final marginAmount = _isMargin
+          ? _calculateMarginAmount(quantity: quantity, avgCost: avgCost)
+          : null;
 
       final holding = StockHolding(
         id: id,
         symbol: _symbolCtrl.text.trim().toUpperCase(),
         market: _market,
         name: _nameCtrl.text.trim(),
-        quantity: int.parse(_quantityCtrl.text.trim()),
-        avgCost: Decimal.parse(_avgCostCtrl.text.trim()),
+        quantity: quantity,
+        avgCost: avgCost,
         currency: _currency,
         isMargin: _isMargin,
         marginAmount: marginAmount,
@@ -338,8 +363,7 @@ class _AddEditStockScreenState extends ConsumerState<AddEditStockScreen> {
               kind: TransactionKind.buy,
               quantity: Decimal.fromInt(holding.quantity),
               price: holding.avgCost,
-              amount: -(holding.avgCost *
-                  Decimal.fromInt(holding.quantity)),
+              amount: -(holding.avgCost * Decimal.fromInt(holding.quantity)),
               currency: holding.currency,
             );
       } else if (qtyDelta != 0) {
@@ -361,6 +385,8 @@ class _AddEditStockScreenState extends ConsumerState<AddEditStockScreen> {
           marginAmount != null) {
         await ref.read(syncLinkedLoansProvider).onMarginAmountChanged(holding);
       }
+
+      await notifyPortfolioChanged(ref);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -419,7 +445,7 @@ class _ForeignMarketDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<MarketCode>(
-      value: value,
+      initialValue: value,
       decoration: const InputDecoration(
         labelText: '市場 *',
         border: OutlineInputBorder(),
@@ -436,12 +462,14 @@ class _ForeignMarketDropdown extends StatelessWidget {
 class _MarginSection extends StatelessWidget {
   const _MarginSection({
     required this.isMargin,
-    required this.marginAmountCtrl,
+    required this.marginAmount,
+    required this.currency,
     required this.onToggle,
   });
 
   final bool isMargin;
-  final TextEditingController marginAmountCtrl;
+  final Decimal? marginAmount;
+  final CurrencyCode currency;
   final ValueChanged<bool> onToggle;
 
   @override
@@ -456,25 +484,17 @@ class _MarginSection extends StatelessWidget {
           onChanged: onToggle,
         ),
         if (isMargin) ...[
-          TextFormField(
-            controller: marginAmountCtrl,
+          InputDecorator(
             decoration: const InputDecoration(
-              labelText: '融資金額 *',
+              labelText: '融資金額（自動計算）',
+              helperText: '依總金額 60% 自動帶入',
               border: OutlineInputBorder(),
             ),
-            keyboardType:
-                const TextInputType.numberWithOptions(decimal: true),
-            validator: (v) {
-              if (v == null || v.trim().isEmpty) return '請輸入融資金額';
-              try {
-                final d = Decimal.parse(v.trim());
-                if (d <= Decimal.zero) return '必須大於 0';
-              } on FormatException {
-                return '請輸入有效的數字';
-              }
-              return null;
-            },
-            textInputAction: TextInputAction.next,
+            child: Text(
+              marginAmount != null
+                  ? CurrencyFormatter.format(marginAmount!, currency)
+                  : '請先輸入股數與平均成本',
+            ),
           ),
           const SizedBox(height: 8),
           Container(

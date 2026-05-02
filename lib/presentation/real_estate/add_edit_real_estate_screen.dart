@@ -50,8 +50,7 @@ class _AddEditRealEstateScreenState
     );
     _currency = a?.currency ?? CurrencyCode.twd;
     _address = a?.address ?? '';
-    _purchaseDate =
-        a != null ? DateTime.parse(a.purchaseDate) : DateTime.now();
+    _purchaseDate = a != null ? DateTime.parse(a.purchaseDate) : DateTime.now();
     _hasMortgage = a?.hasMortgage ?? false;
   }
 
@@ -114,7 +113,7 @@ class _AddEditRealEstateScreenState
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<CurrencyCode>(
-                value: _currency,
+                initialValue: _currency,
                 decoration: const InputDecoration(
                   labelText: '幣別',
                   border: OutlineInputBorder(),
@@ -205,10 +204,8 @@ class _AddEditRealEstateScreenState
       // Determine loan linkage changes
       final wasHasMortgage = existing?.hasMortgage ?? false;
       final hadLinkedLoan = existing?.linkedLoanId != null;
-      final needsNewLoan =
-          _hasMortgage && (!wasHasMortgage || !hadLinkedLoan);
-      final needsLoanRemoval =
-          !_hasMortgage && wasHasMortgage && hadLinkedLoan;
+      final needsNewLoan = _hasMortgage && (!wasHasMortgage || !hadLinkedLoan);
+      final needsLoanRemoval = !_hasMortgage && wasHasMortgage && hadLinkedLoan;
 
       String? linkedLoanId = existing?.linkedLoanId;
 
@@ -239,6 +236,8 @@ class _AddEditRealEstateScreenState
       if (needsNewLoan) {
         await ref.read(createMortgageProvider).execute(asset);
       }
+
+      await notifyPortfolioChanged(ref);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

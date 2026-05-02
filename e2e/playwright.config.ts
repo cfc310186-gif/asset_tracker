@@ -33,13 +33,14 @@ export default defineConfig({
     },
   ],
   // Start Flutter web server before tests.
-  // Run manually: flutter run -d web-server --web-port 8080
+  // Build and serve the release bundle. `flutter run -d web-server` can hang
+  // on the DDC debug loader in headless Playwright sessions.
   webServer: {
     command:
-      'flutter run -d web-server --web-port 8081 --no-hot',
+      'cd .. && flutter build web --release && npx --yes http-server build/web -p 8081 --silent -c-1 --proxy http://localhost:8081?',
     url: 'http://localhost:8081',
     reuseExistingServer: true, // reuse if already running (`flutter run` is slow)
-    timeout: 180000,
+    timeout: 240000,
     stderr: 'pipe',
   },
 })

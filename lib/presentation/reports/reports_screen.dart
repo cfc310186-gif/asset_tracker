@@ -34,13 +34,11 @@ extension on ReportPeriod {
 
 final _periodProvider = StateProvider<ReportPeriod>((_) => ReportPeriod.m3);
 
-final _trendProvider =
-    StreamProvider.autoDispose<List<TimeSeriesPoint>>((ref) {
+final _trendProvider = StreamProvider.autoDispose<List<TimeSeriesPoint>>((ref) {
   final currency = ref.watch(displayCurrencyProvider);
   final period = ref.watch(_periodProvider);
-  final from = period.window == null
-      ? null
-      : DateTime.now().subtract(period.window!);
+  final from =
+      period.window == null ? null : DateTime.now().subtract(period.window!);
   return ref
       .watch(buildNetWorthSeriesProvider)
       .watch(displayCurrency: currency, from: from);
@@ -135,8 +133,7 @@ class _TrendTab extends ConsumerWidget {
           const SizedBox(height: 16),
           Expanded(
             child: trendAsync.when(
-              loading: () =>
-                  const Center(child: CircularProgressIndicator()),
+              loading: () => const Center(child: CircularProgressIndicator()),
               error: (e, _) => Center(child: Text('載入失敗：$e')),
               data: (points) => Card(
                 child: Padding(
@@ -161,6 +158,7 @@ class _ComparisonTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final compAsync = ref.watch(_comparisonProvider);
+    final currency = ref.watch(displayCurrencyProvider);
     return Padding(
       padding: const EdgeInsets.all(16),
       child: compAsync.when(
@@ -170,7 +168,10 @@ class _ComparisonTab extends ConsumerWidget {
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: SingleChildScrollView(
-              child: CategoryComparisonChart(rows: rows),
+              child: CategoryComparisonChart(
+                rows: rows,
+                currency: currency,
+              ),
             ),
           ),
         ),
@@ -219,8 +220,7 @@ class _TransactionsTabState extends ConsumerState<_TransactionsTab> {
         const Divider(height: 1),
         Expanded(
           child: txAsync.when(
-            loading: () =>
-                const Center(child: CircularProgressIndicator()),
+            loading: () => const Center(child: CircularProgressIndicator()),
             error: (e, _) => Center(child: Text('載入失敗：$e')),
             data: (txs) {
               final filtered = _filter == null
@@ -234,4 +234,3 @@ class _TransactionsTabState extends ConsumerState<_TransactionsTab> {
     );
   }
 }
-

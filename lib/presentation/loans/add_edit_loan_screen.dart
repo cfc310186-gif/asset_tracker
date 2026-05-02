@@ -9,6 +9,7 @@ import '../../domain/enums/currency_code.dart';
 import '../../domain/enums/loan_type.dart';
 import '../../domain/models/loan.dart';
 import '../../providers/repository_providers.dart';
+import '../../providers/usecase_providers.dart';
 
 class AddEditLoanScreen extends ConsumerStatefulWidget {
   const AddEditLoanScreen({super.key, this.loan});
@@ -56,8 +57,7 @@ class _AddEditLoanScreenState extends ConsumerState<AddEditLoanScreen> {
     final targetYear = _startDate.year + (_startDate.month + months - 1) ~/ 12;
     final targetMonth = (_startDate.month + months - 1) % 12 + 1;
     // Guard against month overflow (e.g. Jan 31 + 1 month → Feb 28).
-    final lastDayOfTargetMonth =
-        DateTime(targetYear, targetMonth + 1, 0).day;
+    final lastDayOfTargetMonth = DateTime(targetYear, targetMonth + 1, 0).day;
     final day = _startDate.day <= lastDayOfTargetMonth
         ? _startDate.day
         : lastDayOfTargetMonth;
@@ -69,8 +69,7 @@ class _AddEditLoanScreenState extends ConsumerState<AddEditLoanScreen> {
     super.initState();
     final l = widget.loan;
     _nameCtrl = TextEditingController(text: l?.name ?? '');
-    _principalCtrl =
-        TextEditingController(text: l?.principal.toString() ?? '');
+    _principalCtrl = TextEditingController(text: l?.principal.toString() ?? '');
     _remainingCtrl =
         TextEditingController(text: l?.remainingBalance.toString() ?? '');
 
@@ -79,17 +78,14 @@ class _AddEditLoanScreenState extends ConsumerState<AddEditLoanScreen> {
         ? (l.interestRate * Decimal.fromInt(100)).toStringAsFixed(2)
         : '';
     _rateCtrl = TextEditingController(text: rateDisplay);
-    _termCtrl =
-        TextEditingController(text: l?.termMonths.toString() ?? '');
+    _termCtrl = TextEditingController(text: l?.termMonths.toString() ?? '');
     _gracePeriodMonthsCtrl = TextEditingController(
       text: l?.gracePeriodMonths?.toString() ?? '',
     );
 
     _loanType = l?.type ?? LoanType.mortgage;
     _currency = l?.currency ?? CurrencyCode.twd;
-    _startDate = l != null
-        ? DateTime.parse(l.startDate)
-        : DateTime.now();
+    _startDate = l != null ? DateTime.parse(l.startDate) : DateTime.now();
     _hasGracePeriod = l?.hasGracePeriod ?? false;
     _calculatedPayment = l?.monthlyPayment;
   }
@@ -115,9 +111,8 @@ class _AddEditLoanScreenState extends ConsumerState<AddEditLoanScreen> {
 
     try {
       final principal = Decimal.parse(principalText);
-      final annualRate =
-          (Decimal.parse(rateText) / Decimal.fromInt(100))
-              .toDecimal(scaleOnInfinitePrecision: 10);
+      final annualRate = (Decimal.parse(rateText) / Decimal.fromInt(100))
+          .toDecimal(scaleOnInfinitePrecision: 10);
 
       if (principal <= Decimal.zero) return;
 
@@ -169,7 +164,7 @@ class _AddEditLoanScreenState extends ConsumerState<AddEditLoanScreen> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<LoanType>(
-                value: _loanType,
+                initialValue: _loanType,
                 decoration: const InputDecoration(
                   labelText: '貸款種類 *',
                   border: OutlineInputBorder(),
@@ -245,7 +240,7 @@ class _AddEditLoanScreenState extends ConsumerState<AddEditLoanScreen> {
               ),
               const SizedBox(height: 16),
               DropdownButtonFormField<CurrencyCode>(
-                value: _currency,
+                initialValue: _currency,
                 decoration: const InputDecoration(
                   labelText: '幣別',
                   border: OutlineInputBorder(),
@@ -361,10 +356,10 @@ class _AddEditLoanScreenState extends ConsumerState<AddEditLoanScreen> {
                 termMonths: term,
               ));
 
-      final gracePeriodMonths = (_hasGracePeriod &&
-              _gracePeriodMonthsCtrl.text.trim().isNotEmpty)
-          ? int.tryParse(_gracePeriodMonthsCtrl.text.trim())
-          : null;
+      final gracePeriodMonths =
+          (_hasGracePeriod && _gracePeriodMonthsCtrl.text.trim().isNotEmpty)
+              ? int.tryParse(_gracePeriodMonthsCtrl.text.trim())
+              : null;
       final computedGraceEnd = _computedGraceEndDate;
 
       final loan = Loan(
@@ -390,6 +385,7 @@ class _AddEditLoanScreenState extends ConsumerState<AddEditLoanScreen> {
       );
 
       await ref.read(loanRepositoryProvider).save(loan);
+      await notifyPortfolioChanged(ref);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -491,8 +487,7 @@ class _GracePeriodSection extends StatelessWidget {
               border: const OutlineInputBorder(),
               helperText: '由開始日期 + 寬限期月數推算',
               filled: true,
-              fillColor:
-                  Theme.of(context).colorScheme.surfaceContainerHighest,
+              fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
             ),
             child: Text(
               computedEndDate != null

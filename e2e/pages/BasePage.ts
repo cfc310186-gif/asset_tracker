@@ -14,20 +14,53 @@ import { Page, Locator, expect } from '@playwright/test'
 export class BasePage {
   constructor(readonly page: Page) {}
 
-  /** Wait until the Flutter app has mounted and the loading spinner is gone. */
-  async waitForFlutterReady(timeoutMs = 20000): Promise<void> {
+  /** Wait until the Flutter app has mounted enough for route assertions. */
+  async waitForFlutterReady(timeoutMs = 60000): Promise<void> {
+    await this.page.waitForLoadState('domcontentloaded')
+
     await this.page.waitForFunction(
       () => {
-        const loader = document.querySelector('flt-glass-pane')
-        return loader !== null
+        return Boolean(
+          document.querySelector('flt-glass-pane') ||
+            document.querySelector('flutter-view') ||
+            document.querySelector('[aria-label="Enable accessibility"]'),
+        )
       },
+      undefined,
+      { timeout: timeoutMs },
+    )
+
+    // Release CanvasKit starts with semantic DOM disabled. Enable it so tests
+    // can use text, roles, and `flt-semantics-identifier` locators.
+    const enableAccessibility = this.page.getByRole('button', {
+      name: /Enable accessibility/i,
+    })
+    if (await enableAccessibility.isVisible().catch(() => false)) {
+      await this.page.evaluate(() => {
+        const element = document.querySelector<HTMLElement>(
+          '[aria-label="Enable accessibility"]',
+        )
+        element?.click()
+      })
+    }
+
+    await this.page.waitForFunction(
+      () => {
+        return Boolean(
+          document.querySelector('[flt-semantics-identifier]') ||
+            document.querySelector(
+              'flt-semantics:not([aria-label="Enable accessibility"])',
+            ),
+        )
+      },
+      undefined,
       { timeout: timeoutMs },
     )
     await this.page.waitForTimeout(500)
   }
 
   async goto(path = '/'): Promise<void> {
-    await this.page.goto(path)
+    await this.page.goto(path, { waitUntil: 'commit', timeout: 60000 })
     await this.waitForFlutterReady()
   }
 
@@ -43,7 +76,13 @@ export class BasePage {
       `[flt-semantics-identifier="nav-${route}"]`,
     )
 
-    if (await byIdentifier.count()) {
+    const hasIdentifier = await byIdentifier
+      .first()
+      .waitFor({ state: 'visible', timeout: 5000 })
+      .then(() => true)
+      .catch(() => false)
+
+    if (hasIdentifier) {
       await byIdentifier.first().click()
     } else {
       // Legacy fallback — target text that matches the label form.
