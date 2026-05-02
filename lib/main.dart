@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app.dart';
+import 'core/config/supabase_config.dart';
 import 'core/constants/app_constants.dart';
 import 'providers/settings_providers.dart';
 
@@ -11,6 +13,13 @@ Future<void> main() async {
   // Preload SharedPreferences so the app picks up the saved theme / keys
   // on the very first frame instead of after the user opens Settings.
   final prefs = await SharedPreferences.getInstance();
+
+  if (SupabaseConfig.isConfigured) {
+    await Supabase.initialize(
+      url: SupabaseConfig.url,
+      anonKey: SupabaseConfig.anonKey,
+    );
+  }
 
   runApp(
     ProviderScope(
@@ -22,8 +31,7 @@ Future<void> main() async {
         alphaVantageKeyProvider.overrideWith(
           (ref) => prefs.getString(AppConstants.prefAlphaVantageApiKey) ?? '',
         ),
-        corsProxyUrlProvider
-            .overrideWith((ref) => loadCorsProxyUrl(prefs)),
+        corsProxyUrlProvider.overrideWith((ref) => loadCorsProxyUrl(prefs)),
       ],
       child: const AssetTrackerApp(),
     ),

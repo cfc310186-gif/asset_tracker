@@ -1,5 +1,10 @@
 import { defineConfig, devices } from '@playwright/test'
 
+const supabaseDefines =
+  process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY
+    ? ` --dart-define=SUPABASE_URL="${process.env.SUPABASE_URL}" --dart-define=SUPABASE_ANON_KEY="${process.env.SUPABASE_ANON_KEY}"`
+    : ''
+
 export default defineConfig({
   testDir: './tests',
   fullyParallel: false, // Flutter web DB is in-memory — run serially to avoid conflicts
@@ -37,7 +42,7 @@ export default defineConfig({
   // on the DDC debug loader in headless Playwright sessions.
   webServer: {
     command:
-      'cd .. && flutter build web --release && npx --yes http-server build/web -p 8081 --silent -c-1 --proxy http://localhost:8081?',
+      `cd .. && flutter build web --release${supabaseDefines} && npx --yes http-server build/web -p 8081 --silent -c-1 --proxy http://localhost:8081?`,
     url: 'http://localhost:8081',
     reuseExistingServer: true, // reuse if already running (`flutter run` is slow)
     timeout: 240000,
