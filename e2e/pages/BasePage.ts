@@ -60,7 +60,9 @@ export class BasePage {
   }
 
   async goto(path = '/'): Promise<void> {
-    await this.page.goto(path, { waitUntil: 'commit', timeout: 60000 })
+    const target =
+      path === '/' || path.startsWith('/#') ? path : `/#${path}`
+    await this.page.goto(target, { waitUntil: 'commit', timeout: 60000 })
     await this.waitForFlutterReady()
   }
 
@@ -85,11 +87,12 @@ export class BasePage {
     if (hasIdentifier) {
       await byIdentifier.first().click()
     } else {
-      // Legacy fallback — target text that matches the label form.
-      const fallbackLabel = ROUTE_TO_LABEL[route] ?? labelOrRoute
-      await this.page.getByText(fallbackLabel).first().click()
+      await this.page.evaluate((nextRoute) => {
+        window.location.hash = nextRoute
+      }, route)
     }
     await this.page.waitForTimeout(300)
+    await this.waitForFlutterReady()
   }
 
   /** Fill a Flutter TextFormField by its label text. */
@@ -125,7 +128,3 @@ const LABEL_TO_ROUTE: Record<string, string> = {
   報表: '/reports',
   設定: '/settings',
 }
-
-const ROUTE_TO_LABEL: Record<string, string> = Object.fromEntries(
-  Object.entries(LABEL_TO_ROUTE).map(([k, v]) => [v, k]),
-)

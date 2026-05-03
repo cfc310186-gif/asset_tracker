@@ -48,6 +48,9 @@ class _AddEditLoanScreenState extends ConsumerState<AddEditLoanScreen> {
   /// `principal * annualRate / 12`, not a standard amortized payment.
   bool get _isInterestOnly => _loanType == LoanType.stockMarginLoan;
 
+  bool get _usesInterestOnlyPayment =>
+      _isInterestOnly || (_loanType == LoanType.mortgage && _hasGracePeriod);
+
   /// Computed grace-period end date: start date + N months. Clamped to the
   /// last day of the target month when the source day doesn't exist there.
   DateTime? get _computedGraceEndDate {
@@ -107,7 +110,7 @@ class _AddEditLoanScreenState extends ConsumerState<AddEditLoanScreen> {
     final termText = _termCtrl.text.trim();
 
     if (principalText.isEmpty || rateText.isEmpty) return;
-    if (!_isInterestOnly && termText.isEmpty) return;
+    if (!_usesInterestOnlyPayment && termText.isEmpty) return;
 
     try {
       final principal = Decimal.parse(principalText);
@@ -116,27 +119,40 @@ class _AddEditLoanScreenState extends ConsumerState<AddEditLoanScreen> {
 
       if (principal <= Decimal.zero) return;
 
-      final Decimal payment;
-      if (_isInterestOnly) {
-        payment = LoanCalculator.calculateInterestOnlyPayment(
-          principal: principal,
-          annualRate: annualRate,
-        );
-      } else {
-        final term = int.parse(termText);
-        if (term <= 0) return;
-        payment = LoanCalculator.calculateMonthlyPayment(
-          principal: principal,
-          annualRate: annualRate,
-          termMonths: term,
-        );
-      }
+      final payment = _calculateCurrentMonthlyPayment(
+        principal: principal,
+        annualRate: annualRate,
+        termText: termText,
+      );
       setState(() => _calculatedPayment = payment);
     } on Exception {
       // Ignore parse errors during typing
     } on Error {
       // Ignore argument errors
     }
+  }
+
+  Decimal _calculateCurrentMonthlyPayment({
+    required Decimal principal,
+    required Decimal annualRate,
+    required String termText,
+  }) {
+    if (_usesInterestOnlyPayment) {
+      return LoanCalculator.calculateInterestOnlyPayment(
+        principal: principal,
+        annualRate: annualRate,
+      );
+    }
+
+    final term = int.parse(termText);
+    if (term <= 0) {
+      throw ArgumentError('term must be positive, got $term');
+    }
+    return LoanCalculator.calculateMonthlyPayment(
+      principal: principal,
+      annualRate: annualRate,
+      termMonths: term,
+    );
   }
 
   @override
@@ -182,7 +198,10 @@ class _AddEditLoanScreenState extends ConsumerState<AddEditLoanScreen> {
                   if (v != null) {
                     setState(() {
                       _loanType = v;
-                      if (!_showGracePeriod) _hasGracePeriod = false;
+                      if (!_showGracePeriod) {
+                        _hasGracePeriod = false;
+                        _gracePeriodMonthsCtrl.clear();
+                      }
                     });
                     _recalculate();
                   }
@@ -270,11 +289,17 @@ class _AddEditLoanScreenState extends ConsumerState<AddEditLoanScreen> {
                   hasGracePeriod: _hasGracePeriod,
                   gracePeriodMonthsCtrl: _gracePeriodMonthsCtrl,
                   computedEndDate: _computedGraceEndDate,
-                  onToggle: (v) => setState(() {
-                    _hasGracePeriod = v;
-                    if (!v) _gracePeriodMonthsCtrl.clear();
-                  }),
-                  onMonthsChanged: () => setState(() {}),
+                  onToggle: (v) {
+                    setState(() {
+                      _hasGracePeriod = v;
+                      if (!v) _gracePeriodMonthsCtrl.clear();
+                    });
+                    _recalculate();
+                  },
+                  onMonthsChanged: () {
+                    setState(() {});
+                    _recalculate();
+                  },
                 ),
               ],
               const SizedBox(height: 16),
@@ -346,17 +371,12 @@ class _AddEditLoanScreenState extends ConsumerState<AddEditLoanScreen> {
       final now = DateTime.now();
       final existing = widget.loan;
 
-      final payment = _isInterestOnly
-          ? LoanCalculator.calculateInterestOnlyPayment(
-              principal: principal,
-              annualRate: annualRate,
-            )
-          : (_calculatedPayment ??
-              LoanCalculator.calculateMonthlyPayment(
-                principal: principal,
-                annualRate: annualRate,
-                termMonths: term,
-              ));
+      final payment = _calculatedPayment ??
+          _calculateCurrentMonthlyPayment(
+            principal: principal,
+            annualRate: annualRate,
+            termText: term.toString(),
+          );
 
       final gracePeriodMonths =
           (_hasGracePeriod && _gracePeriodMonthsCtrl.text.trim().isNotEmpty)

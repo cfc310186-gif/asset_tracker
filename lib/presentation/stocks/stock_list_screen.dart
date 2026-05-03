@@ -21,6 +21,7 @@ class StockListScreen extends ConsumerStatefulWidget {
 class _StockListScreenState extends ConsumerState<StockListScreen> {
   bool _isRefreshing = false;
   final Set<String> _refreshingIds = <String>{};
+  final Set<MarketCode> _collapsedMarkets = <MarketCode>{};
 
   Future<void> _refreshPrices() async {
     if (_isRefreshing) return;
@@ -220,18 +221,25 @@ class _StockListScreenState extends ConsumerState<StockListScreen> {
               if (showNoKeyBanner)
                 _NoApiKeyBanner(onTapSettings: () => context.push('/settings')),
               for (final market in MarketCode.values)
-                if (grouped.containsKey(market)) ...[
-                  _MarketGroupHeader(market: market),
-                  ...grouped[market]!.map(
-                    (h) => _StockTile(
-                      holding: h,
-                      isRefreshing: _refreshingIds.contains(h.id),
-                      onTap: () => context.push('/stocks/edit', extra: h),
-                      onDelete: () => _confirmDelete(context, ref, h),
-                      onRefresh: () => _refreshSingle(h),
-                    ),
+                if (grouped.containsKey(market))
+                  _MarketGroupSection(
+                    market: market,
+                    holdings: grouped[market]!,
+                    isCollapsed: _collapsedMarkets.contains(market),
+                    refreshingIds: _refreshingIds,
+                    onToggle: () {
+                      setState(() {
+                        if (_collapsedMarkets.contains(market)) {
+                          _collapsedMarkets.remove(market);
+                        } else {
+                          _collapsedMarkets.add(market);
+                        }
+                      });
+                    },
+                    onTapHolding: (h) => context.push('/stocks/edit', extra: h),
+                    onDeleteHolding: (h) => _confirmDelete(context, ref, h),
+                    onRefreshHolding: _refreshSingle,
                   ),
-                ],
             ],
           );
         },
@@ -284,6 +292,53 @@ class _StockListScreenState extends ConsumerState<StockListScreen> {
   }
 }
 
+class _MarketGroupSection extends StatelessWidget {
+  const _MarketGroupSection({
+    required this.market,
+    required this.holdings,
+    required this.isCollapsed,
+    required this.refreshingIds,
+    required this.onToggle,
+    required this.onTapHolding,
+    required this.onDeleteHolding,
+    required this.onRefreshHolding,
+  });
+
+  final MarketCode market;
+  final List<StockHolding> holdings;
+  final bool isCollapsed;
+  final Set<String> refreshingIds;
+  final VoidCallback onToggle;
+  final ValueChanged<StockHolding> onTapHolding;
+  final ValueChanged<StockHolding> onDeleteHolding;
+  final ValueChanged<StockHolding> onRefreshHolding;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _MarketGroupHeader(
+          market: market,
+          count: holdings.length,
+          isCollapsed: isCollapsed,
+          onToggle: onToggle,
+        ),
+        if (!isCollapsed)
+          ...holdings.map(
+            (h) => _StockTile(
+              holding: h,
+              isRefreshing: refreshingIds.contains(h.id),
+              onTap: () => onTapHolding(h),
+              onDelete: () => onDeleteHolding(h),
+              onRefresh: () => onRefreshHolding(h),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 class _NoApiKeyBanner extends StatelessWidget {
   const _NoApiKeyBanner({required this.onTapSettings});
   final VoidCallback onTapSettings;
@@ -325,22 +380,59 @@ class _NoApiKeyBanner extends StatelessWidget {
 }
 
 class _MarketGroupHeader extends StatelessWidget {
-  const _MarketGroupHeader({required this.market});
+  const _MarketGroupHeader({
+    required this.market,
+    required this.count,
+    required this.isCollapsed,
+    required this.onToggle,
+  });
 
   final MarketCode market;
+  final int count;
+  final bool isCollapsed;
+  final VoidCallback onToggle;
 
   @override
   Widget build(BuildContext context) {
     final color = _colorForMarket(market);
-    return Container(
-      color: color.withValues(alpha: 0.1),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Text(
-        market.displayName,
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          color: color,
-          fontSize: 14,
+    return Semantics(
+      identifier: 'stock-market-group-${market.name}',
+      button: true,
+      label: '${market.displayName} $count 檔 ${isCollapsed ? '已收合' : '已展開'}',
+      child: InkWell(
+        key: ValueKey('stock-market-toggle-${market.name}'),
+        onTap: onToggle,
+        child: Container(
+          color: color.withValues(alpha: 0.1),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            children: [
+              Icon(
+                isCollapsed ? Icons.chevron_right : Icons.expand_more,
+                color: color,
+                size: 20,
+              ),
+              const SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  market.displayName,
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              Text(
+                '$count 檔',
+                style: TextStyle(
+                  color: color,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -17,35 +17,63 @@ class BuildCategoryComparison {
 
   final NetWorthSnapshotRepository _repo;
 
+  Future<List<CategoryComparisonRow>> buildMonthly({
+    required CurrencyCode displayCurrency,
+    int monthsBack = 12,
+  }) async {
+    final snapshots = await _repo.getAll();
+    return _buildMonthly(
+      snapshots,
+      displayCurrency: displayCurrency,
+      monthsBack: monthsBack,
+    );
+  }
+
   Stream<List<CategoryComparisonRow>> watchMonthly({
     required CurrencyCode displayCurrency,
     int monthsBack = 12,
   }) {
     return _repo.watchByCurrency(displayCurrency).map((snapshots) {
-      final cutoff = _monthStart(DateTime.now()).subtract(
-        Duration(days: 31 * monthsBack),
+      return _buildMonthly(
+        snapshots,
+        displayCurrency: displayCurrency,
+        monthsBack: monthsBack,
       );
-      final inWindow =
-          snapshots.where((s) => !s.capturedAt.isBefore(cutoff)).toList();
-
-      // Group by first day of month, keep the latest snapshot per month.
-      final byMonth = <DateTime, NetWorthSnapshot>{};
-      for (final s in inWindow) {
-        final monthKey = _monthStart(s.capturedAt);
-        final existing = byMonth[monthKey];
-        if (existing == null || s.capturedAt.isAfter(existing.capturedAt)) {
-          byMonth[monthKey] = s;
-        }
-      }
-
-      final sortedKeys = byMonth.keys.toList()..sort();
-      return sortedKeys
-          .map((k) => CategoryComparisonRow(
-                period: k,
-                values: byMonth[k]!.breakdown,
-              ))
-          .toList();
     });
+  }
+
+  List<CategoryComparisonRow> _buildMonthly(
+    List<NetWorthSnapshot> snapshots, {
+    required CurrencyCode displayCurrency,
+    required int monthsBack,
+  }) {
+    final cutoff = _monthStart(DateTime.now()).subtract(
+      Duration(days: 31 * monthsBack),
+    );
+    final inWindow = snapshots
+        .where(
+          (s) =>
+              s.displayCurrency == displayCurrency &&
+              !s.capturedAt.isBefore(cutoff),
+        )
+        .toList();
+
+    final byMonth = <DateTime, NetWorthSnapshot>{};
+    for (final s in inWindow) {
+      final monthKey = _monthStart(s.capturedAt);
+      final existing = byMonth[monthKey];
+      if (existing == null || s.capturedAt.isAfter(existing.capturedAt)) {
+        byMonth[monthKey] = s;
+      }
+    }
+
+    final sortedKeys = byMonth.keys.toList()..sort();
+    return sortedKeys
+        .map((k) => CategoryComparisonRow(
+              period: k,
+              values: byMonth[k]!.breakdown,
+            ))
+        .toList();
   }
 
   DateTime _monthStart(DateTime ts) => DateTime(ts.year, ts.month, 1);

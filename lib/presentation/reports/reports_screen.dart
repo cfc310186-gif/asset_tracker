@@ -34,27 +34,42 @@ extension on ReportPeriod {
 
 final _periodProvider = StateProvider<ReportPeriod>((_) => ReportPeriod.m3);
 
-final _trendProvider = StreamProvider.autoDispose<List<TimeSeriesPoint>>((ref) {
+final _reportsSnapshotRefreshProvider = FutureProvider.autoDispose<void>((
+  ref,
+) async {
+  final currency = ref.watch(displayCurrencyProvider);
+  ref.watch(portfolioRevisionProvider);
+  await ref
+      .watch(captureNetWorthSnapshotProvider)
+      .execute(displayCurrency: currency);
+});
+
+final _trendProvider = FutureProvider.autoDispose<List<TimeSeriesPoint>>((
+  ref,
+) async {
   final currency = ref.watch(displayCurrencyProvider);
   final period = ref.watch(_periodProvider);
   final from =
       period.window == null ? null : DateTime.now().subtract(period.window!);
+  await ref.watch(_reportsSnapshotRefreshProvider.future);
   return ref
       .watch(buildNetWorthSeriesProvider)
-      .watch(displayCurrency: currency, from: from);
+      .build(displayCurrency: currency, from: from);
 });
 
 final _comparisonProvider =
-    StreamProvider.autoDispose<List<CategoryComparisonRow>>((ref) {
+    FutureProvider.autoDispose<List<CategoryComparisonRow>>((ref) async {
   final currency = ref.watch(displayCurrencyProvider);
+  await ref.watch(_reportsSnapshotRefreshProvider.future);
   return ref
       .watch(buildCategoryComparisonProvider)
-      .watchMonthly(displayCurrency: currency);
+      .buildMonthly(displayCurrency: currency);
 });
 
 final _transactionsProvider =
-    StreamProvider.autoDispose<List<Transaction>>((ref) {
-  return ref.watch(transactionRepositoryProvider).watchAll();
+    FutureProvider.autoDispose<List<Transaction>>((ref) {
+  ref.watch(portfolioRevisionProvider);
+  return ref.watch(transactionRepositoryProvider).getAll();
 });
 
 class ReportsScreen extends ConsumerWidget {

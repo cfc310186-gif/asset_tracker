@@ -40,6 +40,13 @@ test.describe('Stocks — CRUD', () => {
     ).toBeVisible({ timeout: 5000 })
     await expect(stocks.stockTile('2330')).toBeVisible()
 
+    const taiwanGroup = page.locator(
+      '[flt-semantics-identifier="stock-market-group-taiwan"]',
+    )
+    await expect(taiwanGroup).toBeVisible()
+    await taiwanGroup.click()
+    await expect(stocks.stockTile('2330')).not.toBeVisible()
+
     await page.screenshot({ path: 'artifacts/stock-after-add.png' })
   })
 

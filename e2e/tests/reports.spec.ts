@@ -14,9 +14,9 @@ test.describe('Reports', () => {
     await base.navigateTo('報表')
     await expect(page).toHaveURL(/reports/)
 
-    await expect(page.getByText('淨資產走勢').first()).toBeVisible()
-    await expect(page.getByText('類別比較').first()).toBeVisible()
-    await expect(page.getByText('交易明細').first()).toBeVisible()
+    await expect(page.getByRole('tab', { name: '淨資產走勢' })).toBeVisible()
+    await expect(page.getByRole('tab', { name: '類別比較' })).toBeVisible()
+    await expect(page.getByRole('tab', { name: '交易明細' })).toBeVisible()
 
     await page.screenshot({ path: 'artifacts/reports-tabs.png', fullPage: true })
   })
@@ -42,18 +42,19 @@ test.describe('Reports', () => {
     const base = new BasePage(page)
     await base.goto('/reports')
 
-    await page.getByText('交易明細').first().click()
-    await page.waitForTimeout(300)
+    await page.getByRole('tab', { name: '交易明細' }).click()
 
     const hasList = await page
-      .locator('flt-semantics[role="list"]')
+      .locator('[flt-semantics-identifier="transactions-list"]')
       .first()
-      .isVisible()
+      .waitFor({ state: 'visible', timeout: 5000 })
+      .then(() => true)
       .catch(() => false)
     const hasEmpty = await page
-      .getByText(/尚無交易紀錄|暫無資料/)
+      .locator('[flt-semantics-identifier="transactions-empty-state"]')
       .first()
-      .isVisible()
+      .waitFor({ state: 'visible', timeout: 5000 })
+      .then(() => true)
       .catch(() => false)
 
     expect(hasList || hasEmpty).toBe(true)

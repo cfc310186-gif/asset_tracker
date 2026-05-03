@@ -39,9 +39,11 @@ class NetWorthTrendChart extends StatelessWidget {
     for (var i = 0; i < points.length; i++) {
       spots.add(FlSpot(i.toDouble(), points[i].value.toDouble()));
     }
+    final chartSpots =
+        points.length == 1 ? [spots.first, FlSpot(1, spots.first.y)] : spots;
 
-    final minY = spots.map((s) => s.y).reduce((a, b) => a < b ? a : b);
-    final maxY = spots.map((s) => s.y).reduce((a, b) => a > b ? a : b);
+    final minY = chartSpots.map((s) => s.y).reduce((a, b) => a < b ? a : b);
+    final maxY = chartSpots.map((s) => s.y).reduce((a, b) => a > b ? a : b);
     final range = (maxY - minY).abs();
     final pad = range == 0 ? maxY.abs() * 0.1 + 1 : range * 0.1;
 
@@ -55,6 +57,8 @@ class NetWorthTrendChart extends StatelessWidget {
         height: 260,
         child: LineChart(
           LineChartData(
+            minX: 0,
+            maxX: chartSpots.last.x,
             minY: minY - pad,
             maxY: maxY + pad,
             titlesData: FlTitlesData(
@@ -111,7 +115,7 @@ class NetWorthTrendChart extends StatelessWidget {
             borderData: FlBorderData(show: false),
             lineBarsData: [
               LineChartBarData(
-                spots: spots,
+                spots: chartSpots,
                 isCurved: true,
                 color: theme.colorScheme.primary,
                 barWidth: 2.5,
