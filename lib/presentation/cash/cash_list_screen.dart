@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:decimal/decimal.dart';
 
 import '../../core/utils/currency_formatter.dart';
-import '../../domain/enums/currency_code.dart';
 import '../../domain/models/cash_account.dart';
 import '../../providers/repository_providers.dart';
 import '../../providers/usecase_providers.dart';
+import '../../domain/enums/currency_code.dart';
 
 class CashListScreen extends ConsumerWidget {
   const CashListScreen({super.key});
@@ -136,10 +137,9 @@ class _TotalBalanceHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Group balances by currency
-    final totals = <CurrencyCode, double>{};
+    final totals = <CurrencyCode, Decimal>{};
     for (final a in accounts) {
-      totals[a.currency] = (totals[a.currency] ?? 0) + a.balance.toDouble();
+      totals[a.currency] = (totals[a.currency] ?? Decimal.zero) + a.balance;
     }
 
     return Container(
@@ -170,14 +170,15 @@ class _TotalBalanceHeader extends StatelessWidget {
     );
   }
 
-  String _formatAmount(double amount, CurrencyCode currency) {
+  String _formatAmount(Decimal amount, CurrencyCode currency) {
     if (currency == CurrencyCode.twd) {
       return amount.toStringAsFixed(0).replaceAllMapped(
             RegExp(r'\B(?=(\d{3})+(?!\d))'),
             (m) => ',',
           );
     }
-    return amount.toStringAsFixed(2).replaceAllMapped(
+    final fractionDigits = currency == CurrencyCode.jpy ? 0 : 2;
+    return amount.toStringAsFixed(fractionDigits).replaceAllMapped(
           RegExp(r'\B(?=(\d{3})+(?!\d))'),
           (m) => ',',
         );

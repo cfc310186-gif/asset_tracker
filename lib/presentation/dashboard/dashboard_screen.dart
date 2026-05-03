@@ -4,10 +4,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/currency_formatter.dart';
+import '../../domain/enums/currency_code.dart';
 import '../../domain/models/monthly_cash_flow_summary.dart';
 import '../../domain/models/net_worth_summary.dart';
 import '../../domain/models/time_series_point.dart';
-import '../../providers/settings_providers.dart';
 import '../../providers/usecase_providers.dart';
 import 'widgets/asset_breakdown_chart.dart';
 import 'widgets/category_summary_tile.dart';
@@ -269,26 +269,23 @@ class _CategoryGrid extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 final _netWorthProvider = FutureProvider<NetWorthSummary>((ref) {
-  final currency = ref.watch(displayCurrencyProvider);
   ref.watch(portfolioRevisionProvider);
   return ref.watch(calculateNetWorthProvider).execute(
-        displayCurrency: currency,
+        displayCurrency: CurrencyCode.twd,
       );
 });
 
 final _monthlyCashFlowProvider = FutureProvider<MonthlyCashFlowSummary>((ref) {
-  final currency = ref.watch(displayCurrencyProvider);
   ref.watch(portfolioRevisionProvider);
   return ref.watch(calculateMonthlyCashFlowProvider).execute(
-        displayCurrency: currency,
+        displayCurrency: CurrencyCode.twd,
       );
 });
 
 final _sparklineProvider =
     StreamProvider.autoDispose<List<TimeSeriesPoint>>((ref) {
-  final currency = ref.watch(displayCurrencyProvider);
   final from = DateTime.now().subtract(const Duration(days: 30));
   return ref
       .watch(buildNetWorthSeriesProvider)
-      .watch(displayCurrency: currency, from: from);
+      .watch(displayCurrency: CurrencyCode.twd, from: from);
 });

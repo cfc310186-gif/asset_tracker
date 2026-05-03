@@ -10,6 +10,7 @@ import '../../providers/price_providers.dart';
 import '../../providers/repository_providers.dart';
 import '../../providers/settings_providers.dart';
 import '../../providers/usecase_providers.dart';
+import '../shared/currency_totals.dart';
 
 class StockListScreen extends ConsumerStatefulWidget {
   const StockListScreen({super.key});
@@ -321,6 +322,13 @@ class _MarketGroupSection extends StatelessWidget {
         _MarketGroupHeader(
           market: market,
           count: holdings.length,
+          totalsLabel: formatCurrencyTotals(
+            sumByCurrency(
+              holdings,
+              currencyOf: (h) => h.currency,
+              amountOf: (h) => h.totalValue,
+            ),
+          ),
           isCollapsed: isCollapsed,
           onToggle: onToggle,
         ),
@@ -383,12 +391,14 @@ class _MarketGroupHeader extends StatelessWidget {
   const _MarketGroupHeader({
     required this.market,
     required this.count,
+    required this.totalsLabel,
     required this.isCollapsed,
     required this.onToggle,
   });
 
   final MarketCode market;
   final int count;
+  final String totalsLabel;
   final bool isCollapsed;
   final VoidCallback onToggle;
 
@@ -423,6 +433,19 @@ class _MarketGroupHeader extends StatelessWidget {
                   ),
                 ),
               ),
+              Flexible(
+                child: Text(
+                  totalsLabel,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.end,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
               Text(
                 '$count 檔',
                 style: TextStyle(

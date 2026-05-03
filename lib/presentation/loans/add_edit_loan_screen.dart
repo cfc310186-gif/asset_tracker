@@ -109,8 +109,12 @@ class _AddEditLoanScreenState extends ConsumerState<AddEditLoanScreen> {
     final rateText = _rateCtrl.text.trim();
     final termText = _termCtrl.text.trim();
 
-    if (principalText.isEmpty || rateText.isEmpty) return;
-    if (!_usesInterestOnlyPayment && termText.isEmpty) return;
+    if (principalText.isEmpty ||
+        rateText.isEmpty ||
+        (!_usesInterestOnlyPayment && termText.isEmpty)) {
+      setState(() => _calculatedPayment = null);
+      return;
+    }
 
     try {
       final principal = Decimal.parse(principalText);
@@ -126,9 +130,9 @@ class _AddEditLoanScreenState extends ConsumerState<AddEditLoanScreen> {
       );
       setState(() => _calculatedPayment = payment);
     } on Exception {
-      // Ignore parse errors during typing
+      setState(() => _calculatedPayment = null);
     } on Error {
-      // Ignore argument errors
+      setState(() => _calculatedPayment = null);
     }
   }
 
@@ -371,12 +375,11 @@ class _AddEditLoanScreenState extends ConsumerState<AddEditLoanScreen> {
       final now = DateTime.now();
       final existing = widget.loan;
 
-      final payment = _calculatedPayment ??
-          _calculateCurrentMonthlyPayment(
-            principal: principal,
-            annualRate: annualRate,
-            termText: term.toString(),
-          );
+      final payment = _calculateCurrentMonthlyPayment(
+        principal: principal,
+        annualRate: annualRate,
+        termText: term.toString(),
+      );
 
       final gracePeriodMonths =
           (_hasGracePeriod && _gracePeriodMonthsCtrl.text.trim().isNotEmpty)

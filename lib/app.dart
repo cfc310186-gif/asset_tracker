@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
 import 'presentation/shared/app_router.dart';
+import 'providers/price_providers.dart';
 import 'providers/settings_providers.dart';
 import 'providers/usecase_providers.dart';
 
@@ -19,6 +20,15 @@ class _AssetTrackerAppState extends ConsumerState<AssetTrackerApp> {
     // Capture today's net worth snapshot on app start. Upsert keyed by date
     // so re-launches the same day are no-ops.
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        await ref.read(refreshExchangeRatesProvider).execute();
+        ref
+            .read(portfolioRevisionProvider.notifier)
+            .update((value) => value + 1);
+      } on Exception catch (e) {
+        debugPrint('[AssetTrackerApp] Exchange rate refresh failed: $e');
+      }
+
       try {
         final displayCurrency = ref.read(displayCurrencyProvider);
         await ref

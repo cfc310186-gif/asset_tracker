@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../domain/models/time_series_point.dart';
 import '../../domain/models/transaction.dart';
+import '../../domain/models/net_worth_summary.dart';
 import '../../domain/usecases/build_category_comparison.dart';
 import '../../providers/repository_providers.dart';
 import '../../providers/settings_providers.dart';
@@ -34,36 +35,44 @@ extension on ReportPeriod {
 
 final _periodProvider = StateProvider<ReportPeriod>((_) => ReportPeriod.m3);
 
-final _reportsSnapshotRefreshProvider = FutureProvider.autoDispose<void>((
-  ref,
-) async {
-  final currency = ref.watch(displayCurrencyProvider);
-  ref.watch(portfolioRevisionProvider);
-  await ref
-      .watch(captureNetWorthSnapshotProvider)
-      .execute(displayCurrency: currency);
-});
-
 final _trendProvider = FutureProvider.autoDispose<List<TimeSeriesPoint>>((
   ref,
 ) async {
   final currency = ref.watch(displayCurrencyProvider);
   final period = ref.watch(_periodProvider);
+  ref.watch(portfolioRevisionProvider);
   final from =
       period.window == null ? null : DateTime.now().subtract(period.window!);
-  await ref.watch(_reportsSnapshotRefreshProvider.future);
-  return ref
+  final points = await ref
       .watch(buildNetWorthSeriesProvider)
       .build(displayCurrency: currency, from: from);
+  if (points.isNotEmpty) {
+    return points;
+  }
+
+  final summary = await ref
+      .watch(calculateNetWorthProvider)
+      .execute(displayCurrency: currency);
+  return [
+    TimeSeriesPoint(at: summary.calculatedAt, value: summary.netWorth),
+  ];
 });
 
 final _comparisonProvider =
     FutureProvider.autoDispose<List<CategoryComparisonRow>>((ref) async {
   final currency = ref.watch(displayCurrencyProvider);
-  await ref.watch(_reportsSnapshotRefreshProvider.future);
-  return ref
+  ref.watch(portfolioRevisionProvider);
+  final rows = await ref
       .watch(buildCategoryComparisonProvider)
       .buildMonthly(displayCurrency: currency);
+  if (rows.isNotEmpty) {
+    return rows;
+  }
+
+  final summary = await ref
+      .watch(calculateNetWorthProvider)
+      .execute(displayCurrency: currency);
+  return [_comparisonRowFromSummary(summary)];
 });
 
 final _transactionsProvider =
@@ -71,6 +80,22 @@ final _transactionsProvider =
   ref.watch(portfolioRevisionProvider);
   return ref.watch(transactionRepositoryProvider).getAll();
 });
+
+CategoryComparisonRow _comparisonRowFromSummary(NetWorthSummary summary) {
+  return CategoryComparisonRow(
+    period: DateTime(
+      summary.calculatedAt.year,
+      summary.calculatedAt.month,
+      1,
+    ),
+    values: {
+      'stock': summary.totalStockValue,
+      'cash': summary.totalCashValue,
+      'real_estate': summary.totalRealEstateValue,
+      'loan': summary.totalLoanBalance,
+    },
+  );
+}
 
 class ReportsScreen extends ConsumerWidget {
   const ReportsScreen({super.key});

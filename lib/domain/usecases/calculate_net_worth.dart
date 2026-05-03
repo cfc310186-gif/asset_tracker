@@ -94,8 +94,18 @@ class CalculateNetWorth {
   ) {
     if (from == to) return amount;
     final key = '${from.name.toUpperCase()}_${to.name.toUpperCase()}';
-    final rate = rates[key] ?? Decimal.one;
-    return (amount * rate).round(scale: 2);
+    final directRate = rates[key];
+    if (directRate != null) return (amount * directRate).round(scale: 2);
+
+    final reverseKey = '${to.name.toUpperCase()}_${from.name.toUpperCase()}';
+    final reverseRate = rates[reverseKey];
+    if (reverseRate != null && reverseRate != Decimal.zero) {
+      return (amount / reverseRate)
+          .toDecimal(scaleOnInfinitePrecision: 10)
+          .round(scale: 2);
+    }
+
+    return amount;
   }
 
   /// Loads all exchange rates from the repository and returns them as a

@@ -10,6 +10,7 @@ import '../../providers/auth_providers.dart';
 import '../../providers/cloud_sync_providers.dart';
 import '../../providers/price_providers.dart';
 import '../../providers/settings_providers.dart';
+import '../../providers/usecase_providers.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -142,6 +143,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     });
     try {
       await ref.read(refreshExchangeRatesProvider).execute();
+      ref.read(portfolioRevisionProvider.notifier).update((value) => value + 1);
       if (mounted) {
         setState(() => _statusMessage = '匯率更新完成');
       }

@@ -78,6 +78,29 @@ test.describe('Dashboard', () => {
       { timeout: 10000 },
     )
   })
+
+  test('converts JPY cash to TWD on the dashboard', async ({ page }) => {
+    const dashboard = new DashboardPage(page)
+    await dashboard.goto('/')
+
+    await goHash(page, '/cash')
+    await page.locator('[flt-semantics-identifier="fab-add-cash"]').click()
+    await expect(page.getByRole('textbox').first()).toBeVisible()
+    await fillFlutterTextBox(page, page.getByRole('textbox').nth(0), 'jpy-cash-e2e')
+    await fillFlutterTextBox(page, page.getByRole('textbox').nth(1), '100000')
+    await page.getByRole('button', { name: /TWD/ }).click()
+    await expect(page.getByRole('menuitem', { name: /JPY/ })).toBeVisible()
+    await page.getByRole('menuitem', { name: /JPY/ }).click()
+    await page.getByRole('button').last().click()
+    await expect(page).toHaveURL(/\/cash$/)
+
+    await goHash(page, '/')
+    await expect(dashboard.netWorthCard).toHaveAttribute(
+      'aria-label',
+      /NT\$(1[5-9]|2[0-9]|3[0-5]),\d{3}/,
+      { timeout: 30000 },
+    )
+  })
 })
 
 async function fillFlutterTextBox(page: Page, locator: Locator, value: string) {

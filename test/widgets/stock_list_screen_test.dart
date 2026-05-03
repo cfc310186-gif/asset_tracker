@@ -68,6 +68,41 @@ void main() {
 
     expect(find.text('AAPL  Apple'), findsNothing);
   });
+
+  testWidgets('stock market totals use the holdings actual currencies',
+      (tester) async {
+    final now = DateTime(2026, 5, 3);
+    final repo = FakeStockRepository([
+      _holding(
+        id: 'tw',
+        symbol: '2330',
+        market: MarketCode.taiwan,
+        name: 'TSMC',
+        currency: CurrencyCode.twd,
+        now: now,
+      ),
+      _holding(
+        id: 'uk-usd',
+        symbol: 'VOD',
+        market: MarketCode.uk,
+        name: 'Vodafone',
+        currency: CurrencyCode.usd,
+        now: now,
+      ),
+    ]);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [stockRepositoryProvider.overrideWithValue(repo)],
+        child: const MaterialApp(home: StockListScreen()),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.textContaining('TWD NT\$1,100'), findsOneWidget);
+    expect(find.textContaining(r'USD $1,100.00'), findsOneWidget);
+    expect(find.textContaining('GBP'), findsNothing);
+  });
 }
 
 StockHolding _holding({

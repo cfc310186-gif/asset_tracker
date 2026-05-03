@@ -2,6 +2,7 @@ import 'package:decimal/decimal.dart';
 import 'package:intl/intl.dart';
 
 import '../../domain/enums/currency_code.dart';
+
 class CurrencyFormatter {
   CurrencyFormatter._();
 
@@ -9,6 +10,7 @@ class CurrencyFormatter {
     CurrencyCode.twd: NumberFormat('#,##0', 'zh_TW'), // TWD: no decimals
     CurrencyCode.usd: NumberFormat('#,##0.00', 'en_US'), // USD: 2 decimals
     CurrencyCode.gbp: NumberFormat('#,##0.00', 'en_GB'), // GBP: 2 decimals
+    CurrencyCode.jpy: NumberFormat('#,##0', 'ja_JP'), // JPY: no decimals
   };
 
   /// Format amount with currency symbol, e.g. "NT$1,234,567" or "$1,234.56".

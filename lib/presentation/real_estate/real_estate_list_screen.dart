@@ -7,6 +7,7 @@ import '../../core/utils/currency_formatter.dart';
 import '../../domain/models/real_estate_asset.dart';
 import '../../providers/repository_providers.dart';
 import '../../providers/usecase_providers.dart';
+import '../shared/currency_totals.dart';
 
 class RealEstateListScreen extends ConsumerWidget {
   const RealEstateListScreen({super.key});
@@ -60,18 +61,26 @@ class RealEstateListScreen extends ConsumerWidget {
             );
           }
 
-          return ListView.separated(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            itemCount: assets.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
-            itemBuilder: (context, index) {
-              final asset = assets[index];
-              return _RealEstateTile(
-                asset: asset,
-                onTap: () => context.push('/real-estate/edit', extra: asset),
-                onDelete: () => _confirmDelete(context, ref, asset),
-              );
-            },
+          return Column(
+            children: [
+              _RealEstateTotalHeader(assets: assets),
+              Expanded(
+                child: ListView.separated(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  itemCount: assets.length,
+                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  itemBuilder: (context, index) {
+                    final asset = assets[index];
+                    return _RealEstateTile(
+                      asset: asset,
+                      onTap: () =>
+                          context.push('/real-estate/edit', extra: asset),
+                      onDelete: () => _confirmDelete(context, ref, asset),
+                    );
+                  },
+                ),
+              ),
+            ],
           );
         },
       ),
@@ -120,6 +129,49 @@ class RealEstateListScreen extends ConsumerWidget {
         }
       }
     }
+  }
+}
+
+class _RealEstateTotalHeader extends StatelessWidget {
+  const _RealEstateTotalHeader({required this.assets});
+
+  final List<RealEstateAsset> assets;
+
+  @override
+  Widget build(BuildContext context) {
+    final totalsLabel = formatCurrencyTotals(
+      sumByCurrency(
+        assets,
+        currencyOf: (asset) => asset.currency,
+        amountOf: (asset) => asset.estimatedValue,
+      ),
+    );
+
+    return Container(
+      width: double.infinity,
+      color: Theme.of(context).colorScheme.primaryContainer,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '估值總合',
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            totalsLabel,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

@@ -69,6 +69,40 @@ void main() {
       expect(summary.totalCashValue, Decimal.parse('3200'));
     });
 
+    test('converts JPY cash to TWD using exchange rate', () async {
+      cashRepo.items
+          .add(_cash('jpy', CurrencyCode.jpy, Decimal.parse('10000')));
+      rateRepo.items.add(ExchangeRate(
+        id: 'jpy-twd',
+        fromCurrency: CurrencyCode.jpy,
+        toCurrency: CurrencyCode.twd,
+        rate: Decimal.parse('0.21'),
+        fetchedAt: DateTime.now(),
+      ));
+
+      final summary = await useCase.execute(displayCurrency: CurrencyCode.twd);
+
+      expect(summary.totalCashValue, Decimal.parse('2100.00'));
+      expect(summary.displayCurrency, CurrencyCode.twd);
+    });
+
+    test('uses reverse exchange rate when direct net worth pair is missing',
+        () async {
+      cashRepo.items
+          .add(_cash('jpy', CurrencyCode.jpy, Decimal.parse('10000')));
+      rateRepo.items.add(ExchangeRate(
+        id: 'twd-jpy',
+        fromCurrency: CurrencyCode.twd,
+        toCurrency: CurrencyCode.jpy,
+        rate: Decimal.parse('4.7619047619'),
+        fetchedAt: DateTime.now(),
+      ));
+
+      final summary = await useCase.execute(displayCurrency: CurrencyCode.twd);
+
+      expect(summary.totalCashValue, Decimal.parse('2100.00'));
+    });
+
     test('falls back to 1:1 rate when pair missing', () async {
       cashRepo.items.add(_cash('c', CurrencyCode.usd, Decimal.parse('100')));
 
@@ -85,8 +119,7 @@ void main() {
       expect(summary.netWorth, Decimal.parse('600'));
     });
 
-    test('real estate value uses estimatedValue, not purchasePrice',
-        () async {
+    test('real estate value uses estimatedValue, not purchasePrice', () async {
       realEstateRepo.items.add(RealEstateAsset(
         id: 're1',
         name: 'Apt',

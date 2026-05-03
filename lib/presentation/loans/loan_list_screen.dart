@@ -7,6 +7,7 @@ import '../../domain/enums/loan_type.dart';
 import '../../domain/models/loan.dart';
 import '../../providers/repository_providers.dart';
 import '../../providers/usecase_providers.dart';
+import '../shared/currency_totals.dart';
 
 class LoanListScreen extends ConsumerWidget {
   const LoanListScreen({super.key});
@@ -65,7 +66,23 @@ class LoanListScreen extends ConsumerWidget {
             children: [
               for (final type in LoanType.values)
                 if (grouped.containsKey(type)) ...[
-                  _GroupHeader(loanType: type),
+                  _GroupHeader(
+                    loanType: type,
+                    remainingTotals: formatCurrencyTotals(
+                      sumByCurrency(
+                        grouped[type]!,
+                        currencyOf: (loan) => loan.currency,
+                        amountOf: (loan) => loan.remainingBalance,
+                      ),
+                    ),
+                    paymentTotals: formatCurrencyTotals(
+                      sumByCurrency(
+                        grouped[type]!,
+                        currencyOf: (loan) => loan.currency,
+                        amountOf: (loan) => loan.monthlyPayment,
+                      ),
+                    ),
+                  ),
                   ...grouped[type]!.map(
                     (loan) => _LoanTile(
                       loan: loan,
@@ -124,22 +141,53 @@ class LoanListScreen extends ConsumerWidget {
 }
 
 class _GroupHeader extends StatelessWidget {
-  const _GroupHeader({required this.loanType});
+  const _GroupHeader({
+    required this.loanType,
+    required this.remainingTotals,
+    required this.paymentTotals,
+  });
 
   final LoanType loanType;
+  final String remainingTotals;
+  final String paymentTotals;
 
   @override
   Widget build(BuildContext context) {
+    final color = _colorForType(loanType);
     return Container(
-      color: _colorForType(loanType).withValues(alpha: 0.1),
+      color: color.withValues(alpha: 0.1),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Text(
-        loanType.displayName,
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          color: _colorForType(loanType),
-          fontSize: 14,
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            loanType.displayName,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: color,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            '剩餘 $remainingTotals',
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          Text(
+            '月付 $paymentTotals',
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }
