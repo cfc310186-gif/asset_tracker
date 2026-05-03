@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 
+import '../auth/login_screen.dart';
 import '../cash/add_edit_cash_screen.dart';
 import '../cash/cash_list_screen.dart';
 import '../dashboard/dashboard_screen.dart';
@@ -100,8 +101,11 @@ final appRouter = GoRouter(
           path: '/settings',
           builder: (c, s) => const SettingsScreen(),
         ),
+        GoRoute(
+          path: '/login',
+          builder: (c, s) => const LoginScreen(),
+        ),
       ],
     ),
   ],
 );
-

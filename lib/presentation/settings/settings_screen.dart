@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../core/config/supabase_config.dart';
 import '../../core/constants/app_constants.dart';
 import '../../domain/enums/currency_code.dart';
+import '../../providers/auth_providers.dart';
+import '../../providers/cloud_sync_providers.dart';
 import '../../providers/price_providers.dart';
 import '../../providers/settings_providers.dart';
 
@@ -20,6 +25,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   bool _isRefreshingPrices = false;
   bool _isRefreshingRates = false;
+  bool _isSigningOut = false;
+  bool _isImportingCloudData = false;
+  bool _isExportingCloudData = false;
   String? _statusMessage;
 
   @override
@@ -42,10 +50,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       final currency = loadDisplayCurrency(prefs);
       ref.read(displayCurrencyProvider.notifier).state = currency;
 
-      final avKey =
-          prefs.getString(AppConstants.prefAlphaVantageApiKey) ?? '';
-      final erKey =
-          prefs.getString(AppConstants.prefExchangeRateApiKey) ?? '';
+      final avKey = prefs.getString(AppConstants.prefAlphaVantageApiKey) ?? '';
+      final erKey = prefs.getString(AppConstants.prefExchangeRateApiKey) ?? '';
       final corsProxy = loadCorsProxyUrl(prefs);
       final themeMode = loadThemeMode(prefs);
 
@@ -108,8 +114,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       _statusMessage = null;
     });
     try {
-      final result =
-          await ref.read(refreshStockPricesProvider).executeAll();
+      final result = await ref.read(refreshStockPricesProvider).executeAll();
       if (mounted) {
         final msg = result.queueSize == 0
             ? '尚無股票可更新'
@@ -151,6 +156,95 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  Future<void> _signOut() async {
+    setState(() => _isSigningOut = true);
+
+    try {
+      await ref.read(supabaseClientProvider).auth.signOut();
+    } on Exception catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Sign out failed: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSigningOut = false);
+      }
+    }
+  }
+
+  Future<void> _importLocalDataToCloud() async {
+    setState(() {
+      _isImportingCloudData = true;
+      _statusMessage = null;
+    });
+
+    try {
+      final result = await ref.read(importLocalDataToCloudProvider).execute();
+      if (mounted) {
+        setState(() => _statusMessage = result.summaryText);
+      }
+    } on Exception catch (e) {
+      if (mounted) {
+        setState(() => _statusMessage = '匯入失敗：$e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isImportingCloudData = false);
+      }
+    }
+  }
+
+  Future<void> _exportCloudData() async {
+    setState(() {
+      _isExportingCloudData = true;
+      _statusMessage = null;
+    });
+
+    try {
+      final json = await ref.read(exportCloudDataProvider).execute();
+      if (!mounted) return;
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('雲端資料匯出 JSON'),
+          content: SizedBox(
+            width: 640,
+            child: SingleChildScrollView(
+              child: SelectableText(json),
+            ),
+          ),
+          actions: [
+            TextButton.icon(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: json));
+                if (context.mounted) Navigator.of(context).pop();
+                if (mounted) {
+                  setState(() => _statusMessage = '已複製匯出 JSON');
+                }
+              },
+              icon: const Icon(Icons.copy),
+              label: const Text('複製'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('關閉'),
+            ),
+          ],
+        ),
+      );
+    } on Exception catch (e) {
+      if (mounted) {
+        setState(() => _statusMessage = '匯出失敗：$e');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isExportingCloudData = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final displayCurrency = ref.watch(displayCurrencyProvider);
@@ -162,6 +256,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          _SectionHeader(title: 'Account'),
+          _AccountSection(
+            isSigningOut: _isSigningOut,
+            onLogin: () => context.push('/login'),
+            onSignOut: _signOut,
+          ),
+          const SizedBox(height: 24),
+          _SectionHeader(title: '雲端資料'),
+          _CloudDataSection(
+            isImporting: _isImportingCloudData,
+            isExporting: _isExportingCloudData,
+            onImport: _importLocalDataToCloud,
+            onExport: _exportCloudData,
+          ),
+          const SizedBox(height: 24),
+
           // ── 顯示設定 ──────────────────────────────────────────────────
           _SectionHeader(title: '顯示設定'),
           Card(
@@ -231,8 +341,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     controller: _alphaVantageController,
                     decoration: const InputDecoration(
                       labelText: 'Alpha Vantage API Key（可選）',
-                      helperText:
-                          '免費來源 Stooq 已預設啟用；Key 僅在 Stooq 失敗時作為備援。',
+                      helperText: '免費來源 Stooq 已預設啟用；Key 僅在 Stooq 失敗時作為備援。',
                       border: OutlineInputBorder(),
                     ),
                     onChanged: _saveAlphaVantageKey,
@@ -272,7 +381,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
-                    onPressed: _isRefreshingRates ? null : _refreshExchangeRates,
+                    onPressed:
+                        _isRefreshingRates ? null : _refreshExchangeRates,
                     icon: _isRefreshingRates
                         ? const SizedBox(
                             width: 16,
@@ -333,6 +443,197 @@ class _SectionHeader extends StatelessWidget {
               color: Theme.of(context).colorScheme.primary,
               fontWeight: FontWeight.w600,
             ),
+      ),
+    );
+  }
+}
+
+class _AccountSection extends ConsumerWidget {
+  const _AccountSection({
+    required this.isSigningOut,
+    required this.onLogin,
+    required this.onSignOut,
+  });
+
+  final bool isSigningOut;
+  final VoidCallback onLogin;
+  final VoidCallback onSignOut;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+
+    if (!SupabaseConfig.isConfigured) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            'Cloud sync is unavailable because Supabase is not configured. '
+            'Provide SUPABASE_URL and SUPABASE_ANON_KEY with --dart-define '
+            'to enable cloud login.',
+            style: theme.textTheme.bodyMedium,
+          ),
+        ),
+      );
+    }
+
+    final authState = ref.watch(authStateProvider);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: authState.when(
+          data: (state) {
+            final email = state?.session?.user.email ??
+                ref.read(supabaseClientProvider).auth.currentUser?.email;
+
+            if (email == null) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text('Not signed in'),
+                  const SizedBox(height: 12),
+                  FilledButton.icon(
+                    onPressed: onLogin,
+                    icon: const Icon(Icons.login),
+                    label: const Text('Login'),
+                  ),
+                ],
+              );
+            }
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  email,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: isSigningOut ? null : onSignOut,
+                  icon: isSigningOut
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.logout),
+                  label: const Text('Sign out'),
+                ),
+              ],
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, stackTrace) => Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Unable to load account state: $error',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.error,
+                ),
+              ),
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                onPressed: onLogin,
+                icon: const Icon(Icons.login),
+                label: const Text('Login'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CloudDataSection extends ConsumerWidget {
+  const _CloudDataSection({
+    required this.isImporting,
+    required this.isExporting,
+    required this.onImport,
+    required this.onExport,
+  });
+
+  final bool isImporting;
+  final bool isExporting;
+  final VoidCallback onImport;
+  final VoidCallback onExport;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+
+    if (!SupabaseConfig.isConfigured) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(
+            'Supabase 尚未設定，無法使用資料匯入/匯出。',
+            style: theme.textTheme.bodyMedium,
+          ),
+        ),
+      );
+    }
+
+    final authState = ref.watch(authStateProvider);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: authState.when(
+          data: (state) {
+            final user = state?.session?.user ??
+                ref.read(supabaseClientProvider).auth.currentUser;
+            if (user == null) {
+              return const Text('登入後可將本機資料匯入 Supabase。');
+            }
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  '將目前本機 Drift 資料上傳到 Supabase。重複執行會覆蓋同 ID 的雲端資料，不會建立重複資料。',
+                  style: theme.textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 12),
+                FilledButton.icon(
+                  onPressed: isImporting ? null : onImport,
+                  icon: isImporting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.cloud_upload),
+                  label: const Text('匯入本機資料到雲端'),
+                ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: isExporting ? null : onExport,
+                  icon: isExporting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.content_copy),
+                  label: const Text('匯出雲端資料 JSON'),
+                ),
+              ],
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, stackTrace) => Text(
+            '無法讀取登入狀態：$error',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.error,
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -137,7 +137,8 @@ class _AddEditCashScreenState extends ConsumerState<AddEditCashScreen> {
               ],
               const SizedBox(height: 16),
               DropdownButtonFormField<CurrencyCode>(
-                initialValue: _selectedCurrency,
+                // ignore: deprecated_member_use
+                value: _selectedCurrency,
                 decoration: const InputDecoration(
                   labelText: '幣別',
                   border: OutlineInputBorder(),

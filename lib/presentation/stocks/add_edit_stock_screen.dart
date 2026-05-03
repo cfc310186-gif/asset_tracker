@@ -445,7 +445,8 @@ class _ForeignMarketDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<MarketCode>(
-      initialValue: value,
+      // ignore: deprecated_member_use
+      value: value,
       decoration: const InputDecoration(
         labelText: '市場 *',
         border: OutlineInputBorder(),
