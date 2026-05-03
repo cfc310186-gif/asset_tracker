@@ -4,12 +4,14 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/currency_formatter.dart';
+import '../../domain/models/monthly_cash_flow_summary.dart';
 import '../../domain/models/net_worth_summary.dart';
 import '../../domain/models/time_series_point.dart';
 import '../../providers/settings_providers.dart';
 import '../../providers/usecase_providers.dart';
 import 'widgets/asset_breakdown_chart.dart';
 import 'widgets/category_summary_tile.dart';
+import 'widgets/monthly_cash_flow_card.dart';
 import 'widgets/net_worth_card.dart';
 import 'widgets/net_worth_sparkline.dart';
 
@@ -99,6 +101,10 @@ class _DashboardBody extends ConsumerWidget {
     final wide = width >= 1024;
 
     final netWorthCard = _NetWorthBlock(summary: summary);
+    final monthlyCashFlowCard = MonthlyCashFlowCard(
+      summary: ref.watch(_monthlyCashFlowProvider),
+      onRetry: () => ref.invalidate(_monthlyCashFlowProvider),
+    );
     final categories = _CategoryGrid(summary: summary, columns: wide ? 2 : 2);
     final breakdown = AssetBreakdownChart(summary: summary);
 
@@ -114,6 +120,8 @@ class _DashboardBody extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   netWorthCard,
+                  const SizedBox(height: 16),
+                  monthlyCashFlowCard,
                   const SizedBox(height: 16),
                   breakdown,
                 ],
@@ -142,6 +150,8 @@ class _DashboardBody extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           netWorthCard,
+          const SizedBox(height: 16),
+          monthlyCashFlowCard,
           const SizedBox(height: 16),
           breakdown,
           const SizedBox(height: 16),
@@ -262,6 +272,14 @@ final _netWorthProvider = FutureProvider<NetWorthSummary>((ref) {
   final currency = ref.watch(displayCurrencyProvider);
   ref.watch(portfolioRevisionProvider);
   return ref.watch(calculateNetWorthProvider).execute(
+        displayCurrency: currency,
+      );
+});
+
+final _monthlyCashFlowProvider = FutureProvider<MonthlyCashFlowSummary>((ref) {
+  final currency = ref.watch(displayCurrencyProvider);
+  ref.watch(portfolioRevisionProvider);
+  return ref.watch(calculateMonthlyCashFlowProvider).execute(
         displayCurrency: currency,
       );
 });

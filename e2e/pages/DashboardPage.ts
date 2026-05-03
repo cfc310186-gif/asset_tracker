@@ -15,6 +15,11 @@ export class DashboardPage extends BasePage {
     return this.page.locator('[flt-semantics-identifier="net-worth-card"]')
   }
 
+  /** Monthly cash flow summary card. */
+  get monthlyCashFlowCard(): Locator {
+    return this.page.locator('[flt-semantics-identifier="monthly-cash-flow-card"]')
+  }
+
   private tile(title: string): Locator {
     // Semantic identifier first; fall back to text if Flutter version exposes
     // the identifier attribute under a different name.
