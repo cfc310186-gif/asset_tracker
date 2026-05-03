@@ -33,7 +33,11 @@ jobs:
 
       - name: Build web (release)
         # base-href must match the GitHub Pages path: https://<user>.github.io/<repo>/
-        run: flutter build web --release --base-href "/asset_tracker/"
+        run: >
+          flutter build web --release
+          --base-href "/asset_tracker/"
+          --dart-define=SUPABASE_URL="${{ secrets.SUPABASE_URL }}"
+          --dart-define=SUPABASE_ANON_KEY="${{ secrets.SUPABASE_ANON_KEY }}"
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
