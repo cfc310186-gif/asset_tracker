@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../domain/usecases/build_category_comparison.dart';
 import '../domain/usecases/build_net_worth_series.dart';
+import '../domain/usecases/calculate_monthly_cash_flow.dart';
 import '../domain/usecases/calculate_net_worth.dart';
 import '../domain/usecases/capture_net_worth_snapshot.dart';
 import '../domain/usecases/create_margin_loan.dart';
@@ -54,6 +55,16 @@ final calculateNetWorthProvider = Provider<CalculateNetWorth>((ref) {
     realEstateRepo: ref.watch(realEstateRepositoryProvider),
     loanRepo: ref.watch(loanRepositoryProvider),
     cashRepo: ref.watch(cashRepositoryProvider),
+    exchangeRateRepo: ref.watch(exchangeRateRepositoryProvider),
+  );
+});
+
+final calculateMonthlyCashFlowProvider =
+    Provider<CalculateMonthlyCashFlow>((ref) {
+  ref.watch(portfolioRevisionProvider);
+  return CalculateMonthlyCashFlow(
+    cashRepo: ref.watch(cashRepositoryProvider),
+    loanRepo: ref.watch(loanRepositoryProvider),
     exchangeRateRepo: ref.watch(exchangeRateRepositoryProvider),
   );
 });
