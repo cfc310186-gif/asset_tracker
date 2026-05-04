@@ -265,6 +265,49 @@ void main() {
   });
 
   group('Supabase real estate asset mapper', () {
+    test('writes cloud-safe defaults for hidden legacy fields', () {
+      final createdAt = DateTime.utc(2026, 5, 4, 9);
+      final updatedAt = DateTime.utc(2026, 5, 4, 10);
+      final asset = RealEstateAsset(
+        id: '88888888-8888-8888-8888-888888888888',
+        name: 'Hidden fields home',
+        address: '',
+        estimatedValue: Decimal.parse('9000000'),
+        purchasePrice: Decimal.parse('7500000'),
+        purchaseDate: '',
+        currency: CurrencyCode.twd,
+        hasMortgage: false,
+        linkedLoanId: null,
+        createdAt: createdAt,
+        updatedAt: updatedAt,
+      );
+
+      final row = realEstateAssetToSupabaseRow(
+        asset,
+        userId: '33333333-3333-3333-3333-333333333333',
+      );
+
+      expect(row['address'], '-');
+      expect(row['purchase_date'], '2026-05-04');
+    });
+
+    test('reads legacy rows with missing hidden fields', () {
+      final mapped = realEstateAssetFromSupabaseRow({
+        'id': '88888888-8888-8888-8888-888888888888',
+        'name': 'Legacy home',
+        'estimated_value': 9000000,
+        'purchase_price': 7500000,
+        'currency': 'twd',
+        'linked_loan_id': null,
+        'created_at': DateTime.utc(2026, 5, 4, 9).toIso8601String(),
+        'updated_at': DateTime.utc(2026, 5, 4, 10).toIso8601String(),
+      });
+
+      expect(mapped.address, '');
+      expect(mapped.purchaseDate, '2026-05-04');
+      expect(mapped.hasMortgage, isFalse);
+    });
+
     test('round-trips nullable loan link and numeric row shapes', () {
       final createdAt = DateTime.utc(2026, 4, 1, 9);
       final updatedAt = DateTime.utc(2026, 4, 2, 10);

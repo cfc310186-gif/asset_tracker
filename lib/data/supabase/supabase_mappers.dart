@@ -15,6 +15,8 @@ import '../../domain/models/transaction.dart';
 
 typedef SupabaseRow = Map<String, dynamic>;
 
+const _cloudRequiredFallbackText = '-';
+
 StockHolding stockHoldingFromSupabaseRow(SupabaseRow row) => StockHolding(
       id: _readString(row, 'id'),
       symbol: _readString(row, 'symbol'),
@@ -109,8 +111,7 @@ NetWorthSnapshot netWorthSnapshotFromSupabaseRow(SupabaseRow row) {
   return NetWorthSnapshot(
     id: _readString(row, 'id'),
     capturedAt: _readDateTime(row, 'captured_at'),
-    displayCurrency:
-        _readEnum(CurrencyCode.values, row, 'display_currency'),
+    displayCurrency: _readEnum(CurrencyCode.values, row, 'display_currency'),
     totalAssets: _readDecimal(row, 'total_assets'),
     totalLiabilities: _readDecimal(row, 'total_liabilities'),
     netWorth: _readDecimal(row, 'net_worth'),
@@ -169,12 +170,16 @@ RealEstateAsset realEstateAssetFromSupabaseRow(SupabaseRow row) =>
     RealEstateAsset(
       id: _readString(row, 'id'),
       name: _readString(row, 'name'),
-      address: _readString(row, 'address'),
+      address: _readStringOrDefault(row, 'address', ''),
       estimatedValue: _readDecimal(row, 'estimated_value'),
       purchasePrice: _readDecimal(row, 'purchase_price'),
-      purchaseDate: _readDateString(row, 'purchase_date'),
+      purchaseDate: _readDateStringOrDefault(
+        row,
+        'purchase_date',
+        fallback: _readDateTime(row, 'created_at'),
+      ),
       currency: _readEnum(CurrencyCode.values, row, 'currency'),
-      hasMortgage: _readBool(row, 'has_mortgage'),
+      hasMortgage: _readBoolOrDefault(row, 'has_mortgage', false),
       linkedLoanId: _readNullableString(row, 'linked_loan_id'),
       createdAt: _readDateTime(row, 'created_at'),
       updatedAt: _readDateTime(row, 'updated_at'),
@@ -188,10 +193,16 @@ SupabaseRow realEstateAssetToSupabaseRow(
       'id': asset.id,
       'user_id': userId,
       'name': asset.name,
-      'address': asset.address,
+      'address': _writeRequiredText(
+        asset.address,
+        fallback: _cloudRequiredFallbackText,
+      ),
       'estimated_value': asset.estimatedValue.toString(),
       'purchase_price': asset.purchasePrice.toString(),
-      'purchase_date': asset.purchaseDate,
+      'purchase_date': _writeDateStringOrDefault(
+        asset.purchaseDate,
+        fallback: asset.createdAt,
+      ),
       'currency': asset.currency.name,
       'has_mortgage': asset.hasMortgage,
       'linked_loan_id': asset.linkedLoanId,
@@ -234,8 +245,7 @@ SupabaseRow transactionToSupabaseRow(
 
 ExchangeRate exchangeRateFromSupabaseRow(SupabaseRow row) => ExchangeRate(
       id: _readString(row, 'id'),
-      fromCurrency:
-          _readEnum(CurrencyCode.values, row, 'from_currency'),
+      fromCurrency: _readEnum(CurrencyCode.values, row, 'from_currency'),
       toCurrency: _readEnum(CurrencyCode.values, row, 'to_currency'),
       rate: _readDecimal(row, 'rate'),
       fetchedAt: _readDateTime(row, 'fetched_at'),
@@ -260,6 +270,17 @@ String _readString(SupabaseRow row, String field) {
     throw FormatException('Missing required Supabase field: $field');
   }
   return value.toString();
+}
+
+String _readStringOrDefault(
+  SupabaseRow row,
+  String field,
+  String fallback,
+) {
+  final value = row[field];
+  if (value == null) return fallback;
+  final text = value.toString();
+  return text.trim().isEmpty ? fallback : text;
 }
 
 String _readEnumKey(SupabaseRow row, String field) =>
@@ -295,6 +316,15 @@ bool _readBool(SupabaseRow row, String field) {
   return bool.parse(value.toString());
 }
 
+bool _readBoolOrDefault(SupabaseRow row, String field, bool fallback) {
+  final value = row[field];
+  if (value == null) return fallback;
+  if (value is bool) return value;
+  final text = value.toString().trim();
+  if (text.isEmpty) return fallback;
+  return bool.parse(text);
+}
+
 Decimal _readDecimal(SupabaseRow row, String field) =>
     Decimal.parse(row[field].toString());
 
@@ -314,6 +344,18 @@ DateTime? _readNullableDateTime(SupabaseRow row, String field) {
 String _readDateString(SupabaseRow row, String field) =>
     _toIsoDateString(row[field]);
 
+String _readDateStringOrDefault(
+  SupabaseRow row,
+  String field, {
+  required DateTime fallback,
+}) {
+  final value = row[field];
+  if (value == null || value.toString().trim().isEmpty) {
+    return _toIsoDateString(fallback);
+  }
+  return _toIsoDateString(value);
+}
+
 String? _readNullableDateString(SupabaseRow row, String field) {
   final value = row[field];
   return value == null ? null : _toIsoDateString(value);
@@ -322,6 +364,17 @@ String? _readNullableDateString(SupabaseRow row, String field) {
 String _toIsoDateString(Object? value) {
   final text = value.toString();
   return DateTime.parse(text).toIso8601String().split('T').first;
+}
+
+String _writeRequiredText(String value, {required String fallback}) {
+  final text = value.trim();
+  return text.isEmpty ? fallback : value;
+}
+
+String _writeDateStringOrDefault(String value, {required DateTime fallback}) {
+  final text = value.trim();
+  if (text.isEmpty) return _toIsoDateString(fallback);
+  return _toIsoDateString(text);
 }
 
 String? _writeNullableDateTime(DateTime? value) => value?.toIso8601String();

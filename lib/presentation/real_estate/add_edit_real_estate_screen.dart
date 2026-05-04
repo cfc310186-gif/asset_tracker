@@ -28,8 +28,8 @@ class _AddEditRealEstateScreenState
 
   late CurrencyCode _currency;
   // Address / purchaseDate are kept in the model for backward compatibility
-  // but no longer surfaced in the form. Existing records preserve their
-  // values; new records default to empty address and today's date.
+  // but no longer surfaced in the form. Supabase requires a non-empty address,
+  // so new records use a stable placeholder and today's date.
   late String _address;
   late DateTime _purchaseDate;
   late bool _hasMortgage;
@@ -49,7 +49,7 @@ class _AddEditRealEstateScreenState
       text: a?.purchasePrice.toString() ?? '',
     );
     _currency = a?.currency ?? CurrencyCode.twd;
-    _address = a?.address ?? '';
+    _address = a?.address.trim().isNotEmpty == true ? a!.address : '-';
     _purchaseDate = a != null ? DateTime.parse(a.purchaseDate) : DateTime.now();
     _hasMortgage = a?.hasMortgage ?? false;
   }
