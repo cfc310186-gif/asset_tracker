@@ -13,6 +13,13 @@ class CurrencyFormatter {
     CurrencyCode.jpy: NumberFormat('#,##0', 'ja_JP'), // JPY: no decimals
   };
 
+  static final _unitPriceFormatters = <CurrencyCode, NumberFormat>{
+    CurrencyCode.twd: NumberFormat('#,##0.00', 'zh_TW'),
+    CurrencyCode.usd: NumberFormat('#,##0.00', 'en_US'),
+    CurrencyCode.gbp: NumberFormat('#,##0.00', 'en_GB'),
+    CurrencyCode.jpy: NumberFormat('#,##0', 'ja_JP'),
+  };
+
   /// Format amount with currency symbol, e.g. "NT$1,234,567" or "$1,234.56".
   static String format(Decimal amount, CurrencyCode currency) {
     final formatter = _formatters[currency] ?? NumberFormat('#,##0.00');
@@ -21,6 +28,14 @@ class CurrencyFormatter {
     // this is exact. For USD/GBP, rounding to 2 decimal places via NumberFormat
     // absorbs any float noise at the display layer.
     return '$symbol${formatter.format(amount.toDouble())}';
+  }
+
+  /// Format a per-unit price. TWD totals are shown without decimals, but
+  /// stock quote prices need decimals for tick sizes such as 123.45.
+  static String formatUnitPrice(Decimal amount, CurrencyCode currency) {
+    final formatter =
+        _unitPriceFormatters[currency] ?? NumberFormat('#,##0.00');
+    return '${currency.symbol}${formatter.format(amount.toDouble())}';
   }
 
   /// Format with explicit sign for gains/losses, e.g. "+$123.45" or "-$67.89".

@@ -1,5 +1,6 @@
 import 'package:asset_tracker/domain/enums/currency_code.dart';
 import 'package:asset_tracker/domain/enums/market_code.dart';
+import 'package:asset_tracker/domain/models/exchange_rate.dart';
 import 'package:asset_tracker/domain/models/stock_holding.dart';
 import 'package:asset_tracker/presentation/stocks/stock_list_screen.dart';
 import 'package:asset_tracker/providers/repository_providers.dart';
@@ -50,7 +51,12 @@ void main() {
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [stockRepositoryProvider.overrideWithValue(repo)],
+        overrides: [
+          stockRepositoryProvider.overrideWithValue(repo),
+          exchangeRateRepositoryProvider.overrideWithValue(
+            FakeExchangeRateRepository(),
+          ),
+        ],
         child: const MaterialApp(home: StockListScreen()),
       ),
     );
@@ -90,18 +96,95 @@ void main() {
         now: now,
       ),
     ]);
+    final rateRepo = FakeExchangeRateRepository([
+      ExchangeRate(
+        id: 'usd-twd',
+        fromCurrency: CurrencyCode.usd,
+        toCurrency: CurrencyCode.twd,
+        rate: Decimal.fromInt(32),
+        fetchedAt: now,
+      ),
+    ]);
 
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [stockRepositoryProvider.overrideWithValue(repo)],
+        overrides: [
+          stockRepositoryProvider.overrideWithValue(repo),
+          exchangeRateRepositoryProvider.overrideWithValue(rateRepo),
+        ],
         child: const MaterialApp(home: StockListScreen()),
       ),
     );
     await tester.pump();
+    await tester.pump();
 
     expect(find.textContaining('TWD NT\$1,100'), findsOneWidget);
     expect(find.textContaining(r'USD $1,100.00'), findsOneWidget);
+    expect(find.textContaining('≈ NT\$35,200'), findsOneWidget);
     expect(find.textContaining('GBP'), findsNothing);
+  });
+
+  testWidgets('stock page shows market allocation chart converted to TWD',
+      (tester) async {
+    final now = DateTime(2026, 5, 3);
+    final repo = FakeStockRepository([
+      _holding(
+        id: 'tw',
+        symbol: '2330',
+        market: MarketCode.taiwan,
+        name: 'TSMC',
+        currency: CurrencyCode.twd,
+        now: now,
+      ),
+      _holding(
+        id: 'us',
+        symbol: 'AAPL',
+        market: MarketCode.us,
+        name: 'Apple',
+        currency: CurrencyCode.usd,
+        now: now,
+      ),
+      _holding(
+        id: 'uk-usd',
+        symbol: 'VOD',
+        market: MarketCode.uk,
+        name: 'Vodafone',
+        currency: CurrencyCode.usd,
+        now: now,
+      ),
+    ]);
+    final rateRepo = FakeExchangeRateRepository([
+      ExchangeRate(
+        id: 'usd-twd',
+        fromCurrency: CurrencyCode.usd,
+        toCurrency: CurrencyCode.twd,
+        rate: Decimal.fromInt(32),
+        fetchedAt: now,
+      ),
+    ]);
+
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          stockRepositoryProvider.overrideWithValue(repo),
+          exchangeRateRepositoryProvider.overrideWithValue(rateRepo),
+        ],
+        child: const MaterialApp(home: StockListScreen()),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byKey(const ValueKey('stock-market-allocation-chart')),
+        findsOneWidget);
+    expect(
+      find.textContaining('≈ NT\$35,200', skipOffstage: false),
+      findsNWidgets(2),
+    );
+    expect(
+      find.textContaining('VOD  Vodafone', skipOffstage: false),
+      findsOneWidget,
+    );
   });
 }
 

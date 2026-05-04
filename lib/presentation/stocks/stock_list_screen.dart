@@ -1,10 +1,14 @@
+import 'package:decimal/decimal.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../core/utils/currency_formatter.dart';
+import '../../domain/enums/currency_code.dart';
 import '../../domain/enums/market_code.dart';
+import '../../domain/models/exchange_rate.dart';
 import '../../domain/models/stock_holding.dart';
 import '../../providers/price_providers.dart';
 import '../../providers/repository_providers.dart';
@@ -216,32 +220,45 @@ class _StockListScreenState extends ConsumerState<StockListScreen> {
             grouped.putIfAbsent(h.market, () => []).add(h);
           }
 
-          return ListView(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            children: [
-              if (showNoKeyBanner)
-                _NoApiKeyBanner(onTapSettings: () => context.push('/settings')),
-              for (final market in MarketCode.values)
-                if (grouped.containsKey(market))
-                  _MarketGroupSection(
-                    market: market,
-                    holdings: grouped[market]!,
-                    isCollapsed: _collapsedMarkets.contains(market),
-                    refreshingIds: _refreshingIds,
-                    onToggle: () {
-                      setState(() {
-                        if (_collapsedMarkets.contains(market)) {
-                          _collapsedMarkets.remove(market);
-                        } else {
-                          _collapsedMarkets.add(market);
-                        }
-                      });
-                    },
-                    onTapHolding: (h) => context.push('/stocks/edit', extra: h),
-                    onDeleteHolding: (h) => _confirmDelete(context, ref, h),
-                    onRefreshHolding: _refreshSingle,
-                  ),
-            ],
+          return StreamBuilder<List<ExchangeRate>>(
+            stream: ref.watch(exchangeRateRepositoryProvider).watchAll(),
+            builder: (context, rateSnapshot) {
+              final summaries =
+                  _buildMarketSummaries(grouped, rateSnapshot.data ?? []);
+
+              return ListView(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                children: [
+                  if (showNoKeyBanner)
+                    _NoApiKeyBanner(
+                      onTapSettings: () => context.push('/settings'),
+                    ),
+                  _MarketAllocationChart(summaries: summaries),
+                  for (final market in MarketCode.values)
+                    if (grouped.containsKey(market))
+                      _MarketGroupSection(
+                        market: market,
+                        holdings: grouped[market]!,
+                        summary: summaries[market]!,
+                        isCollapsed: _collapsedMarkets.contains(market),
+                        refreshingIds: _refreshingIds,
+                        onToggle: () {
+                          setState(() {
+                            if (_collapsedMarkets.contains(market)) {
+                              _collapsedMarkets.remove(market);
+                            } else {
+                              _collapsedMarkets.add(market);
+                            }
+                          });
+                        },
+                        onTapHolding: (h) =>
+                            context.push('/stocks/edit', extra: h),
+                        onDeleteHolding: (h) => _confirmDelete(context, ref, h),
+                        onRefreshHolding: _refreshSingle,
+                      ),
+                ],
+              );
+            },
           );
         },
       ),
@@ -297,6 +314,7 @@ class _MarketGroupSection extends StatelessWidget {
   const _MarketGroupSection({
     required this.market,
     required this.holdings,
+    required this.summary,
     required this.isCollapsed,
     required this.refreshingIds,
     required this.onToggle,
@@ -307,6 +325,7 @@ class _MarketGroupSection extends StatelessWidget {
 
   final MarketCode market;
   final List<StockHolding> holdings;
+  final _MarketSummary summary;
   final bool isCollapsed;
   final Set<String> refreshingIds;
   final VoidCallback onToggle;
@@ -322,13 +341,8 @@ class _MarketGroupSection extends StatelessWidget {
         _MarketGroupHeader(
           market: market,
           count: holdings.length,
-          totalsLabel: formatCurrencyTotals(
-            sumByCurrency(
-              holdings,
-              currencyOf: (h) => h.currency,
-              amountOf: (h) => h.totalValue,
-            ),
-          ),
+          totalsLabel: summary.originalTotalsLabel,
+          convertedTwdLabel: summary.convertedTwdLabel,
           isCollapsed: isCollapsed,
           onToggle: onToggle,
         ),
@@ -387,11 +401,240 @@ class _NoApiKeyBanner extends StatelessWidget {
   }
 }
 
+Map<MarketCode, _MarketSummary> _buildMarketSummaries(
+  Map<MarketCode, List<StockHolding>> grouped,
+  List<ExchangeRate> rates,
+) {
+  return {
+    for (final entry in grouped.entries)
+      entry.key: _MarketSummary.fromHoldings(entry.key, entry.value, rates),
+  };
+}
+
+class _MarketSummary {
+  const _MarketSummary({
+    required this.market,
+    required this.originalTotalsLabel,
+    required this.totalTwd,
+  });
+
+  factory _MarketSummary.fromHoldings(
+    MarketCode market,
+    List<StockHolding> holdings,
+    List<ExchangeRate> rates,
+  ) {
+    final originalTotals = sumByCurrency(
+      holdings,
+      currencyOf: (h) => h.currency,
+      amountOf: (h) => h.totalValue,
+    );
+    final totalTwd = holdings.fold(
+      Decimal.zero,
+      (sum, holding) =>
+          sum + _convertToTwd(holding.totalValue, holding.currency, rates),
+    );
+
+    return _MarketSummary(
+      market: market,
+      originalTotalsLabel: formatCurrencyTotals(originalTotals),
+      totalTwd: totalTwd,
+    );
+  }
+
+  final MarketCode market;
+  final String originalTotalsLabel;
+  final Decimal totalTwd;
+
+  String? get convertedTwdLabel {
+    if (market == MarketCode.taiwan) return null;
+    return '≈ ${CurrencyFormatter.format(totalTwd, CurrencyCode.twd)}';
+  }
+}
+
+Decimal _convertToTwd(
+  Decimal amount,
+  CurrencyCode from,
+  List<ExchangeRate> rates,
+) {
+  if (from == CurrencyCode.twd) return amount;
+
+  for (final rate in rates) {
+    if (rate.fromCurrency == from && rate.toCurrency == CurrencyCode.twd) {
+      return (amount * rate.rate).round(scale: 2);
+    }
+  }
+
+  for (final rate in rates) {
+    if (rate.fromCurrency == CurrencyCode.twd &&
+        rate.toCurrency == from &&
+        rate.rate != Decimal.zero) {
+      return (amount / rate.rate)
+          .toDecimal(scaleOnInfinitePrecision: 10)
+          .round(scale: 2);
+    }
+  }
+
+  return amount;
+}
+
+class _MarketAllocationChart extends StatefulWidget {
+  const _MarketAllocationChart({required this.summaries});
+
+  final Map<MarketCode, _MarketSummary> summaries;
+
+  @override
+  State<_MarketAllocationChart> createState() => _MarketAllocationChartState();
+}
+
+class _MarketAllocationChartState extends State<_MarketAllocationChart> {
+  int _touchedIndex = -1;
+
+  @override
+  Widget build(BuildContext context) {
+    final segments = MarketCode.values
+        .where((market) =>
+            (widget.summaries[market]?.totalTwd ?? Decimal.zero) > Decimal.zero)
+        .map((market) => _MarketSegment(
+              market: market,
+              value: widget.summaries[market]!.totalTwd,
+              color: _marketColor(market),
+            ))
+        .toList();
+
+    if (segments.isEmpty) return const SizedBox.shrink();
+
+    return Semantics(
+      identifier: 'stock-market-allocation-chart',
+      label: '股票市場占比',
+      container: true,
+      child: Card(
+        key: const ValueKey('stock-market-allocation-chart'),
+        margin: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '市場占比',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 180,
+                child: PieChart(
+                  PieChartData(
+                    sections: _buildSections(segments),
+                    centerSpaceRadius: 36,
+                    sectionsSpace: 2,
+                    pieTouchData: PieTouchData(
+                      touchCallback: (event, response) {
+                        setState(() {
+                          if (!event.isInterestedForInteractions ||
+                              response?.touchedSection == null) {
+                            _touchedIndex = -1;
+                            return;
+                          }
+                          _touchedIndex =
+                              response!.touchedSection!.touchedSectionIndex;
+                        });
+                      },
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 16,
+                runSpacing: 8,
+                children: segments
+                    .map((segment) => _MarketLegendItem(segment: segment))
+                    .toList(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  List<PieChartSectionData> _buildSections(List<_MarketSegment> segments) {
+    final total = segments.fold(Decimal.zero, (sum, s) => sum + s.value);
+    if (total == Decimal.zero) return [];
+
+    return List.generate(segments.length, (i) {
+      final segment = segments[i];
+      final isTouched = i == _touchedIndex;
+      final percentage = segment.value.toDouble() / total.toDouble() * 100;
+
+      return PieChartSectionData(
+        color: segment.color,
+        value: segment.value.toDouble(),
+        title: '${percentage.toStringAsFixed(1)}%',
+        radius: isTouched ? 64 : 54,
+        titleStyle: TextStyle(
+          color: Colors.white,
+          fontSize: isTouched ? 14 : 12,
+          fontWeight: FontWeight.w600,
+        ),
+      );
+    });
+  }
+}
+
+class _MarketSegment {
+  const _MarketSegment({
+    required this.market,
+    required this.value,
+    required this.color,
+  });
+
+  final MarketCode market;
+  final Decimal value;
+  final Color color;
+}
+
+class _MarketLegendItem extends StatelessWidget {
+  const _MarketLegendItem({required this.segment});
+
+  final _MarketSegment segment;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: segment.color,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          '${segment.market.displayName} '
+          '${CurrencyFormatter.format(segment.value, CurrencyCode.twd)}',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      ],
+    );
+  }
+}
+
+Color _marketColor(MarketCode market) => switch (market) {
+      MarketCode.taiwan => Colors.blue,
+      MarketCode.us => Colors.purple,
+      MarketCode.uk => Colors.deepOrange,
+    };
+
 class _MarketGroupHeader extends StatelessWidget {
   const _MarketGroupHeader({
     required this.market,
     required this.count,
     required this.totalsLabel,
+    required this.convertedTwdLabel,
     required this.isCollapsed,
     required this.onToggle,
   });
@@ -399,6 +642,7 @@ class _MarketGroupHeader extends StatelessWidget {
   final MarketCode market;
   final int count;
   final String totalsLabel;
+  final String? convertedTwdLabel;
   final bool isCollapsed;
   final VoidCallback onToggle;
 
@@ -434,15 +678,32 @@ class _MarketGroupHeader extends StatelessWidget {
                 ),
               ),
               Flexible(
-                child: Text(
-                  totalsLabel,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.end,
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      totalsLabel,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.end,
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (convertedTwdLabel != null)
+                      Text(
+                        convertedTwdLabel!,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.end,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                  ],
                 ),
               ),
               const SizedBox(width: 8),
@@ -552,7 +813,7 @@ class _StockTile extends StatelessWidget {
           children: [
             Text(
               '${holding.quantity} 股  '
-              '均價 ${CurrencyFormatter.format(holding.avgCost, holding.currency)}',
+              '均價 ${CurrencyFormatter.formatUnitPrice(holding.avgCost, holding.currency)}',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             if (!hasPrice) ...[
@@ -583,7 +844,7 @@ class _StockTile extends StatelessWidget {
               children: [
                 Text(
                   hasPrice
-                      ? CurrencyFormatter.format(
+                      ? CurrencyFormatter.formatUnitPrice(
                           holding.latestPrice!,
                           holding.currency,
                         )

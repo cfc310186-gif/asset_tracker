@@ -50,7 +50,7 @@ test.describe('Stock price auto update', () => {
       timeout: 20000,
     })
     await expect(
-      page.getByRole('button', { name: /2330[\s\S]*NT\$650/ }),
+      page.getByRole('button', { name: /2330[\s\S]*NT\$650\.50/ }),
     ).toBeVisible()
     await expect(
       page.getByRole('button', { name: /AAPL[\s\S]*\$211\.70/ }),
@@ -62,6 +62,11 @@ test.describe('Stock price auto update', () => {
     expect(calls.twse).toBeGreaterThanOrEqual(1)
     expect(calls.stooqAapl).toBeGreaterThanOrEqual(1)
     expect(calls.stooqBp).toBeGreaterThanOrEqual(1)
+
+    await expect(
+      page.locator('[flt-semantics-identifier="stock-market-allocation-chart"]'),
+    ).toBeVisible()
+    await expect(page.getByText(/≈ NT\$/).first()).toBeVisible()
 
     await page.screenshot({
       path: 'artifacts/stock-price-auto-update.png',
@@ -132,7 +137,7 @@ async function mockStockPriceProviders(page: Page) {
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        msgArray: [{ c: '2330', n: '台積電', z: '650', y: '640' }],
+        msgArray: [{ c: '2330', n: '台積電', z: '650.50', y: '640' }],
       }),
     })
   })
